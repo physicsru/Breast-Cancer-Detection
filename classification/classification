@@ -1,0 +1,155 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Dec  7 10:56:44 2017
+
+@author: System_Error
+"""
+
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+import time, os
+from sklearn.preprocessing import OneHotEncoder
+
+class Regression():
+    def __init__(self, data, label, split):
+        self.split = len(data) * split
+        self.epoch = 500
+        self.batch_size = 50
+        self.train_data = data[:self.split]
+        self.train_label = label[:self.split]
+        self.test_data = data[self.split:]
+        self.test_label = label[self.split:]
+        self.save_dir = 'saved_models'
+        
+        
+        
+    def network(self, net_input):
+        dense1 = tf.layers.dense(net_input, 160)
+        relu1 = self.leaky_relu(dense1)
+        norm1 = tf.contrib.layers.batch_norm(relu1)
+        #relu1 = tf.nn.relu(norm1)
+        
+        dense2 = tf.layers.dense(norm1, 160)
+        relu2 = self.leaky_relu(dense2)
+        norm2 = tf.contrib.layers.batch_norm(relu2)
+        #relu2 = tf.nn.relu(norm2)
+        
+        dense3 = tf.layers.dense(norm2, 160)
+        relu3 = self.leaky_relu(dense3)
+        norm3 = tf.contrib.layers.batch_norm(relu3)
+        #norm3 = tf.nn.dropout(norm3, 0.5)
+        #relu3 = tf.nn.relu(norm3)
+        
+        dense4 = tf.layers.dense(norm3, 160)
+        relu4 = self.leaky_relu(dense4)
+        norm4 = tf.contrib.layers.batch_norm(relu4)
+        #relu3 = tf.nn.relu(norm3)
+        
+        dense5 = tf.layers.dense(norm4, 2)
+        out = tf.nn.softmax(dense5) 
+        return out
+        
+    
+    def next_batch(self, data, label):
+        idx = np.arange(0 , len(data))
+        np.random.shuffle(idx)
+        idx = idx[: self.batch_size]
+        data_shuffle = [data[i] for i in idx]
+        label_shuffle = [label[i] for i in idx]
+        data_shuffle = np.reshape(data_shuffle, [self.batch_size, -1])
+        label_shuffle = np.reshape(label_shuffle, [self.batch_size, -1])
+        return data_shuffle,label_shuffle
+    
+    
+    def dense_layer(self, dense_input, out_dim):
+        in_dim = dense_input.get_shape().as_list()[-1]
+        kernel_init = tf.random_normal([in_dim, out_dim])
+        bias_init = tf.zeros_initializer()
+        return tf.layers.dense(dense_input, out_dim, 
+                               kernel_initializer = kernel_init, bias_initializer = bias_init)
+        
+    
+    def leaky_relu(self, x, slope=0.2):
+        return tf.maximum(x, slope*x)
+    
+        
+        
+    def build_model(self):
+        self.batch_data = tf.placeholder(tf.float32, [self.batch_size, 800])
+        self.batch_label = tf.placeholder(tf.float32, [self.batch_size, 2])
+        self.lr = tf.placeholder(tf.float32)
+        
+        self.prediction = self.network(self.batch_data)
+        self.index = tf.argmax(self.prediction, axis=1)
+        self.loss = tf.losses.softmax_cross_entropy(self.batch_label, self.prediction)
+        self.correct_prediction = tf.equal(tf.argmax(self.batch_label,1), tf.argmax(self.prediction,1))
+        self.accuracy = tf.reduce_mean(tf.cast(self.correct_prediction, "float"))
+        self.train_step = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
+        self.saver = tf.train.Saver()
+        self.sess = tf.InteractiveSession()
+        self.init_global = tf.global_variables_initializer()
+    
+        
+    def train(self):
+        if not os.path.exists(self.save_dir):
+            os.mkdir(self.save_dir)
+        init_lr = 1e-4
+        self.sess.run(self.init_global)
+        start = time.time()
+        for i in range(self.epoch):
+            for j in range(self.split // self.batch_size):
+                batch_data, batch_label = self.next_batch(self.train_data, self.train_label)
+                _, train_loss = self.sess.run([self.train_step, self.loss], 
+                                              feed_dict = {self.batch_data : batch_data, 
+                                                self.batch_label : batch_label, self.lr : init_lr})
+            if np.mod(i+1, 200) == 0:
+                init_lr /= 10
+            print('Epoch:', i, 'Loss:', train_loss, 'Time cost:', time.time()-start)
+            start = time.time()
+        self.saver.save(self.sess, self.save_dir+"/model")
+        
+            
+        
+    def test(self):
+        self.saver.restore(self.sess, tf.train.latest_checkpoint(self.save_dir))
+        acc_list = []
+        for i in range((10000-self.split)//self.batch_size):
+            batch_data = self.test_data[i * self.batch_size : (i+1) * self.batch_size]
+            batch_label = self.test_label[i * self.batch_size : (i+1) * self.batch_size]
+            train_accuracy = self.accuracy.eval(feed_dict={self.batch_data : 
+                                                batch_data, self.batch_label : batch_label})
+            acc_list.append(train_accuracy)
+        print('test accuracy:', np.mean(acc_list))
+    
+    
+    def get_prediction(self):
+        self.saver.restore(self.sess, tf.train.latest_checkpoint(self.save_dir))
+        prediction_list = []
+        for i in range((10000-self.split)//self.batch_size):
+            batch_data = self.test_data[i * self.batch_size : (i+1) * self.batch_size]
+            batch_prediction = self.sess.run([self.index], 
+                                             feed_dict={self.batch_data : batch_data})
+            prediction_list.append(batch_prediction[0])
+            print('batch prediction:', batch_prediction[0])
+        
+        prediction_list = np.reshape(prediction_list, -1)
+        print(np.shape(prediction_list))
+        print(np.where(prediction_list==1))
+        
+        
+def main():
+    data = np.load("X_pca.npy")
+    label = np.load("Y_pca.npy")
+    onehot_encoder = OneHotEncoder(sparse=False)
+    label_one_hot = onehot_encoder.fit_transform(label.reshape(-1, 1))
+    regression = Regression(data, label_one_hot, 0.8)  
+    regression.build_model()
+    #regression.train()
+    #regression.test()
+    regression.get_prediction()
+    
+    
+
+if __name__ == "__main__":
+    main()

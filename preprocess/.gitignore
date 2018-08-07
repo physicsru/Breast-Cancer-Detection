@@ -1,0 +1,10 @@
+*.npy
+*.pkl
+*.pyc
+*.pickle
+*.pth
+.ipynb_checkpoints/
+
+
+
+
