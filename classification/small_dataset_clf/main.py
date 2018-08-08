@@ -1,171 +1,123 @@
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-from torchvision import datasets, transforms
+import os, sys, glob, math
+sys.path.append("../../preprocess/pyusct/")
+from rfdata import RFdata
+from scaler import RFScaler
+from AE import Autoencoder, RFFullDataset
+#from network import clf_network
 
 import numpy as np
-import os, time
-import model
-import utils
-import cv2
-import argparse
 from sklearn import metrics
-from skimage import exposure
+
+import torch, torchvision
+from torch import nn
+from torch.autograd import Variable
+from torch.utils.data import Dataset, DataLoader
+from torchvision import transforms
+from scaler import RFScaler
+from sklearn.model_selection import train_test_split
+import pickle, time
+sys.path.append("../model/")
+from model import clf_network
 
 
 
-def arg_parser():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--batch_size", default = 4096, type = int)
-    parser.add_argument("--clf_iter", default = 50000, type = int)
-    parser.add_argument("--cnn_iter", default = 20000, type = int)
-    parser.add_argument("--init_lr", default = 1e-4, type = float)
-    parser.add_argument('--weight-decay', default = 5e-3, type=float)
-    parser.add_argument("--save_dir", default = 'saved_models')
-    parser.add_argument("--out_dir", default = 'output')
-    parser.add_argument("--mode", default = 'train')
-
-    args = parser.parse_args()
-    return args
-
-
-class Model():
-    def __init__(self, args):
-        self.batch_size = args.batch_size
-        self.clf_iter = args.clf_iter
-        self.cnn_iter = args.cnn_iter
-        self.weight_decay = args.weight_decay
-        self.save_dir = args.save_dir
-        self.out_dir = args.out_dir
-
-        self.clf_network = model.clf_network().cuda()
-        self.clf_loss = nn.CrossEntropyLoss().cuda()
-        self.clf_optim = optim.Adam(self.clf_network.parameters(), lr=args.init_lr , 
-                                    weight_decay = self.weight_decay, betas = (0.9, 0.999), eps=1e-08)
-
+class clf():
+    def __init__(self, dataset_dir, scaler_path):
+        self.lr = 1e-2
+        self.epochs = 6
+        self.batch_size = 32
+        self.input_list = sorted(glob.glob(os.path.join(dataset_dir, "input/*.npy")))
+        self.output_list = sorted(glob.glob(os.path.join(dataset_dir, "output/*.npy")))
+        self.scaler = pickle.load(open(scaler_path, 'rb'))
+        X_train, X_test, y_train, y_test = train_test_split(self.input_list, self.output_list, test_size=0.2, random_state=42)
+        self.traindataset = RFFullDataset(X_train, y_train, self.scaler)
+        self.testdataset = RFFullDataset(X_test, y_test, self.scaler)
         
-    def next_batch(self, data, label, batch_size):
-        idx = np.arange(0 , len(data))
-        np.random.shuffle(idx)
-        idx = idx[:batch_size]
-        batch_data = [data[i] for i in idx]
-        batch_label = [label[i] for i in idx]
-    
-        return np.asarray(batch_data), np.asarray(batch_label)
 
-    def load_data(self):
-        self.train_data = np.load('dataset034/data.npy')[:45000]
-        self.train_label = np.load('dataset034/label.npy')[:45000]
-        self.test_data = np.load('dataset034/data.npy')[45000:]
-        self.test_label = np.load('dataset034/label.npy')[45000:]
+    def train(self, AE_weight_path, model_output_path):
         
-    
-    def train_clf(self):
-        if not os.path.exists(self.save_dir):
-            os.mkdir(self.save_dir)
-     
-        start = time.time()
-        for i in range(self.clf_iter): 
-
-            batch_data, batch_clf_label = self.next_batch(self.train_data, 
-                                                self.train_label, self.batch_size)
-            batch_data = torch.from_numpy(batch_data).float().cuda()
-            batch_clf_label = torch.from_numpy(batch_clf_label).long().cuda()
-
-            prob_out = self.clf_network(batch_data)
-            clf_loss = self.clf_loss(prob_out, batch_clf_label)
-
-            self.clf_optim.zero_grad()   
-            clf_loss.backward()   
-            self.clf_optim.step()
-
-            if np.mod(i+1, 100) == 0:
-                print('iter:', i+1, 'loss:', clf_loss.item(), 'time:', time.time()-start)
-                start = time.time()
+        dataloader = DataLoader(self.traindataset, self.batch_size, 
+                                shuffle=True, num_workers=0)
         
-                if np.mod(i+1, 10000) == 0:
-                    save_clf_dir = self.save_dir + "/clf_network_iter_{}.pth".format(i+1)
-                    torch.save(self.clf_network.state_dict(), save_clf_dir)
-
-
-    def train_cnn(self):
-
-        start = time.time()
-        self.clf_network.load_state_dict(torch.load(self.save_dir + 
-                                "/clf_network_iter_{}.pth".format(self.clf_iter)))
-
-        for i in range(self.cnn_iter):
-
-            batch_data, batch_cnn_label = utils.next_cnn_batch(self.train_data, self.train_label, 
-                                                                self.batch_size, self.train_img_size)
-            batch_data = torch.from_numpy(batch_data).float().cuda()
-            batch_cnn_label = torch.from_numpy(batch_cnn_label).float().cuda()
-
-            prob_out = self.clf_network(batch_data)
-            #argmax = torch.argmax(prob_out).float().cuda()
-            cnn_out = self.cnn_network(prob_out, self.train_img_size)
-            cnn_loss = self.cnn_loss(cnn_out, batch_cnn_label)
-
-            self.cnn_optim.zero_grad()   
-            cnn_loss.backward()   
-            self.cnn_optim.step()
-
-            if np.mod(i+1, 10) == 0:
-                print('iter:', i+1, 'loss:', cnn_loss.item(), 'time:', time.time()-start)
-                start = time.time()
+        self.clf_network = clf_network().cuda()
         
-                if np.mod(i+1, 10000) == 0:
-                    save_clf_dir = self.save_dir + "/cnn_network_iter_{}.pth".format(i+1)
-                    torch.save(self.cnn_network.state_dict(), save_clf_dir)
+        all_params = list(self.clf_network.parameters())
+        
+        optimizer = torch.optim.Adam(all_params, lr=self.lr, weight_decay=1e-4)
+        criterion = nn.CrossEntropyLoss().cuda()
+        print('start training')
+        
+        for epoch in range(self.epochs):
+            start_time = time.time()
+            for i, data_label in enumerate(dataloader):
+                data = Variable(data_label[0]).cuda().float()
+                label = Variable(data_label[1]).view(-1).cuda().long()
+                
+                clf_pred = self.clf_network(data)
+                clf_loss = criterion(clf_pred, label)
+
+                optimizer.zero_grad()
+                clf_loss.backward()
+                optimizer.step()
+
+                #if i+1 % 10 == 0:
+                print('Epoch:', epoch, 'Iter', i, 'Loss:', clf_loss.item(), 'Time:', time.time()-start_time)
+                start_time = time.time()
             
-        
+            #if (i == 0) and (epoch+1 % 2 == 0):
+            #torch.save(self.ae_network.state_dict(), model_output_path + 'ae_epoch_'+str(epoch+1)+'.pth')
+            torch.save(self.clf_network.state_dict(),  model_output_path + 'clf_epoch_'+str(epoch+1)+'.pth')
+            print('Model saved')
 
-    def test(self):
-        
-        self.clf_network.load_state_dict(torch.load(self.save_dir + 
-                                "/clf_network_iter_{}.pth".format(self.clf_iter)))
-        
-        test_input = torch.from_numpy(self.test_data).float().cuda()
-        prob_out = self.clf_network(test_input)
-        prob_out = prob_out.detach().cpu().numpy()
-        prob_idx = np.argmax(prob_out, 1)
 
-        accuracy = metrics.accuracy_score(self.test_label, prob_idx)
-        f1_score = metrics.f1_score(self.test_label, prob_idx)
-        precision = metrics.precision_score(self.test_label, prob_idx)
-        recall = metrics.recall_score(self.test_label, prob_idx)
-        print('accuracy:', accuracy)
-        print('f1_score:', f1_score)
-        print('precision:', precision)
-        print('recall', recall)
+    def test(self, model_load_path):
+        dataloader = DataLoader(self.testdataset, self.batch_size, 
+                                shuffle=True, num_workers=0)
+        self.clf_network = network.clf_network().cuda()
+        self.clf_network.load_state_dict(torch.load('clf_epoch_5.pth'))
 
-        
-        prob_out = np.reshape(prob_out[:, :1], (512, 512))
-        prob_idx = np.reshape(prob_idx, (512, 512))
-        cv2.imwrite('argmax.bmp', prob_idx*255)
-        cv2.imwrite('prob.bmp', prob_out*255)
-        cv2.imwrite('label.bmp', self.test_label.reshape(512, 512)*255)
-        
-    
+        acc_list, f1_list, pre_list, recall_list = [], [], [], []
+        start_time = time.time()
+        for i, data_label in enumerate(dataloader):
+            data = Variable(data_label[0]).cuda().float()
+            clf_pred = self.clf_network(data)
+            prob_out = clf_pred.detach().cpu().numpy()
+            prob_idx = np.argmax(prob_out, 1)
+            
+            accuracy = metrics.accuracy_score(data_label[1], prob_idx)
+            acc_list.append(accuracy)
+            f1_score = metrics.f1_score(data_label[1], prob_idx)
+            f1_list.append(f1_score)
+            precision = metrics.precision_score(data_label[1], prob_idx)
+            pre_list.append(precision)
+            recall = metrics.recall_score(data_label[1], prob_idx)
+            recall_list.append(recall)
+
+            print('Iter', i, 'Time:', time.time()-start_time)
+            print(accuracy, f1_score, precision, recall)
+            start_time = time.time()
+
+        print('accuracy:', np.mean(acc_list))
+        print('f1_score:', np.mean(f1_list))
+        print('precision:', np.mean(pre_list))
+        print('recall', np.mean(recall_list))
+
+
+
 def main():
-    args = arg_parser()
-    model = Model(args)
+    LOCAL_PATH = "/mnt/nas/"
+    MODEL_DIR = os.path.join(LOCAL_PATH, "PYUSCT_model/")
+    DATA_DIR = os.path.join(LOCAL_PATH, "PYUSCT_train/")
+    dataset_dir = os.path.join(DATA_DIR, "dataset037/")
+    model_output_path = os.path.join(MODEL_DIR, "clf/deep/")
+    #print(LOCAL_PATH,MODEL_DIR,model_output_path)
+    scaler_path = os.path.join(MODEL_DIR, "Scaler/Log_MinMax_RFScaler_ds028.pickle")
+    AE_weight_path = os.path.join(MODEL_DIR, "AE/rf_conv_AE_Log_MinMax_ds037.pth")
     
-    
-    if args.mode == 'train':
-        
-        model.load_data()
-        model.train_clf()
-        #model.train_cnn()
-        
-    elif args.mode == 'test':
-        
-        model.load_data()
-        model.test()
-    
-    
+    model = clf(dataset_dir, scaler_path)
+    model.train(AE_weight_path, model_output_path)
+    # model.test()
 
-if __name__  == '__main__':
+
+if __name__ == '__main__':
     main()
-    

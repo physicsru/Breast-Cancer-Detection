@@ -14,6 +14,7 @@ from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from scaler import RFScaler
+from sklearn.model_selection import train_test_split
 
 import pickle, time
 
@@ -21,17 +22,20 @@ import pickle, time
 class clf():
     def __init__(self, dataset_dir, scaler_path):
         self.lr = 1e-3
-        self.epochs = 20
+        self.epochs = 25
         self.batch_size = 32
         self.input_list = sorted(glob.glob(os.path.join(dataset_dir, "input/*.npy")))
         self.output_list = sorted(glob.glob(os.path.join(dataset_dir, "output/*.npy")))
         self.scaler = pickle.load(open(scaler_path, 'rb'))
-        self.dataset = RFFullDataset(self.input_list, self.output_list, self.scaler)
+        X_train, X_test, y_train, y_test = train_test_split(self.input_list, self.output_list, test_size=0.2, random_state=42)
+        self.traindataset = RFFullDataset(X_train, y_train, self.scaler)
+        self.testdataset = RFFullDataset(X_test, y_test, self.scaler)
+        print(self.lr, self.epochs)
         
 
     def train(self, AE_weight_path, model_output_path):
         
-        dataloader = DataLoader(self.dataset, self.batch_size, 
+        dataloader = DataLoader(self.traindataset, self.batch_size, 
                                 shuffle=True, num_workers=0)
         
         self.ae_network = Autoencoder().cuda()
@@ -63,13 +67,13 @@ class clf():
                 start_time = time.time()
             
             #if (i == 0) and (epoch+1 % 2 == 0):
-            torch.save(self.ae_network.state_dict(), model_output_path + 'ae_epoch_'+str(epoch+1)+'.pth')
-            torch.save(self.clf_network.state_dict(),  model_output_path + 'clf_epoch_'+str(epoch+1)+'.pth')
+            torch.save(self.ae_network.state_dict(), model_output_path + 'ae_epoch_e3'+str(epoch+1)+'.pth')
+            torch.save(self.clf_network.state_dict(),  model_output_path + 'clf_epoch_e3'+str(epoch+1)+'.pth')
             print('Model saved')
 
 
     def test(self, model_load_path):
-        dataloader = DataLoader(self.dataset, self.batch_size, 
+        dataloader = DataLoader(self.testdataset, self.batch_size, 
                                 shuffle=True, num_workers=0)
         self.ae_network = network.Autoencoder().cuda()
         self.clf_network = network.clf_network().cuda()
@@ -109,10 +113,11 @@ def main():
     LOCAL_PATH = "/mnt/nas/"
     MODEL_DIR = os.path.join(LOCAL_PATH, "PYUSCT_model/")
     DATA_DIR = os.path.join(LOCAL_PATH, "PYUSCT_train/")
-    dataset_dir = os.path.join(DATA_DIR, "dataset028/")
-    model_output_path = os.path.join(MODEL_DIR, "/clf/deep/")
+    dataset_dir = os.path.join(DATA_DIR, "dataset036/")
+    model_output_path = os.path.join(MODEL_DIR, "clf/deep/")
+    #print(LOCAL_PATH,MODEL_DIR,model_output_path)
     scaler_path = os.path.join(MODEL_DIR, "Scaler/Log_MinMax_RFScaler_ds028.pickle")
-    AE_weight_path = os.path.join(MODEL_DIR, "AE/rf_conv_AE_Log_MinMax.pth")
+    AE_weight_path = os.path.join(MODEL_DIR, "AE/rf_conv_AE_Log_MinMax_ds036.pth")
     
     model = clf(dataset_dir, scaler_path)
     model.train(AE_weight_path, model_output_path)
