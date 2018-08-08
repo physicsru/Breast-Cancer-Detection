@@ -71,6 +71,7 @@ class Autoencoder(nn.Module):
         x = self.decoder_deconv(x)
         return x
     
+# input raw 16*256*200
 class RFFullDataset(Dataset):
     def __init__(self, input_files, output_files, scaler):
         self.file_paths = input_files
@@ -86,4 +87,22 @@ class RFFullDataset(Dataset):
         shape = data.shape
         scaled_data = self.scaler.transform(data.reshape(1, -1))
         return scaled_data.reshape(shape[1],shape[2],shape[3]), label
+
+    
+# input 800 dim
+class RFCompressedDataset(Dataset):
+    def __init__(self, input_files, output_files):
+        X = []
+        y = []
+        for input_file, output_file in zip(input_files, output_files):
+            X.append(np.load(input_file))
+            y.append(np.load(output_file))
+        self.X = np.concatenate(X, axis=0)
+        self.y = np.concatenate(y, axis=0)
+        
+    def __len__(self):
+        return len(self.y)
+    
+    def __getitem__(self, idx):
+        return self.X[idx], self.y[idx]
     

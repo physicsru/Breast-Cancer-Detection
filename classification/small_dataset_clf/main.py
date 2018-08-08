@@ -1,8 +1,7 @@
 import os, sys, glob, math
 sys.path.append("../../preprocess/pyusct/")
 from rfdata import RFdata
-from scaler import RFScaler
-from AE import Autoencoder, RFFullDataset
+from AE import Autoencoder, RFCompressedDataset
 #from network import clf_network
 
 import numpy as np
@@ -13,7 +12,6 @@ from torch import nn
 from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
-from scaler import RFScaler
 from sklearn.model_selection import train_test_split
 import pickle, time
 sys.path.append("../model/")
@@ -22,19 +20,18 @@ from model import clf_network
 
 
 class clf():
-    def __init__(self, dataset_dir, scaler_path):
+    def __init__(self, dataset_dir):
         self.lr = 1e-2
-        self.epochs = 6
+        self.epochs = 15
         self.batch_size = 32
         self.input_list = sorted(glob.glob(os.path.join(dataset_dir, "input/*.npy")))
         self.output_list = sorted(glob.glob(os.path.join(dataset_dir, "output/*.npy")))
-        self.scaler = pickle.load(open(scaler_path, 'rb'))
         X_train, X_test, y_train, y_test = train_test_split(self.input_list, self.output_list, test_size=0.2, random_state=42)
-        self.traindataset = RFFullDataset(X_train, y_train, self.scaler)
-        self.testdataset = RFFullDataset(X_test, y_test, self.scaler)
+        self.traindataset = RFCompressedDataset(X_train, y_train)
+        self.testdataset = RFCompressedDataset(X_test, y_test)
         
 
-    def train(self, AE_weight_path, model_output_path):
+    def train(self, model_output_path):
         
         dataloader = DataLoader(self.traindataset, self.batch_size, 
                                 shuffle=True, num_workers=0)
@@ -60,13 +57,12 @@ class clf():
                 clf_loss.backward()
                 optimizer.step()
 
-                #if i+1 % 10 == 0:
-                print('Epoch:', epoch, 'Iter', i, 'Loss:', clf_loss.item(), 'Time:', time.time()-start_time)
+                if i % 100 == 0:
+                    print('Epoch:', epoch, 'Iter', i, 'Loss:', clf_loss.item(), 'Time:', time.time()-start_time)
                 start_time = time.time()
             
             #if (i == 0) and (epoch+1 % 2 == 0):
-            #torch.save(self.ae_network.state_dict(), model_output_path + 'ae_epoch_'+str(epoch+1)+'.pth')
-            torch.save(self.clf_network.state_dict(),  model_output_path + 'clf_epoch_'+str(epoch+1)+'.pth')
+            torch.save(self.clf_network.state_dict(),  model_output_path + 'clf_pca_epoch_'+str(epoch+1)+'.pth')
             print('Model saved')
 
 
@@ -109,13 +105,10 @@ def main():
     MODEL_DIR = os.path.join(LOCAL_PATH, "PYUSCT_model/")
     DATA_DIR = os.path.join(LOCAL_PATH, "PYUSCT_train/")
     dataset_dir = os.path.join(DATA_DIR, "dataset037/")
-    model_output_path = os.path.join(MODEL_DIR, "clf/deep/")
+    model_output_path = os.path.join(MODEL_DIR, "clf/deep/compression_fix")
     #print(LOCAL_PATH,MODEL_DIR,model_output_path)
-    scaler_path = os.path.join(MODEL_DIR, "Scaler/Log_MinMax_RFScaler_ds028.pickle")
-    AE_weight_path = os.path.join(MODEL_DIR, "AE/rf_conv_AE_Log_MinMax_ds037.pth")
-    
-    model = clf(dataset_dir, scaler_path)
-    model.train(AE_weight_path, model_output_path)
+    model = clf(dataset_dir)
+    model.train(model_output_path)
     # model.test()
 
 
