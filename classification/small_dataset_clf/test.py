@@ -70,17 +70,19 @@ class clf():
     def test(self, model_load_path):
         dataloader = DataLoader(self.testdataset, self.batch_size, 
                                 shuffle=True, num_workers=0)
-        self.clf_network = network.clf_network().cuda()
-        self.clf_network.load_state_dict(torch.load('clf_epoch_5.pth'))
-
-        acc_list, f1_list, pre_list, recall_list = [], [], [], []
+        self.clf_network = clf_network().cuda()
+        self.clf_network.load_state_dict(torch.load(model_load_path+'clf_pca_epoch_30000.pth'))
+        criterion = nn.CrossEntropyLoss().cuda()
+        acc_list, f1_list, pre_list, recall_list, loss_list = [], [], [], [], []
         start_time = time.time()
         for i, data_label in enumerate(dataloader):
             data = Variable(data_label[0]).cuda().float()
+            label = Variable(data_label[1]).view(-1).cuda().long()
             clf_pred = self.clf_network(data)
             prob_out = clf_pred.detach().cpu().numpy()
             prob_idx = np.argmax(prob_out, 1)
-            
+            clf_loss = criterion(clf_pred, label)
+            loss_list.append(clf_loss.item())
             accuracy = metrics.accuracy_score(data_label[1], prob_idx)
             acc_list.append(accuracy)
             f1_score = metrics.f1_score(data_label[1], prob_idx)
@@ -91,13 +93,15 @@ class clf():
             recall_list.append(recall)
 
             print('Iter', i, 'Time:', time.time()-start_time)
-            print(accuracy, f1_score, precision, recall)
+            print('Iter', i, 'Loss:', clf_loss.item(), 'Time:', time.time()-start_time)
+            #print(accuracy, f1_score, precision, recall)
             start_time = time.time()
 
         print('accuracy:', np.mean(acc_list))
         print('f1_score:', np.mean(f1_list))
         print('precision:', np.mean(pre_list))
         print('recall', np.mean(recall_list))
+        print('loss', np.mean(loss_list))
 
 
 
@@ -109,8 +113,8 @@ def main():
     model_output_path = os.path.join(MODEL_DIR, "clf/deep/compression_fix")
     #print(LOCAL_PATH,MODEL_DIR,model_output_path)
     model = clf(dataset_dir)
-    model.train(model_output_path)
-    # model.test()
+    #model.train(model_output_path)
+    model.test(model_output_path)
 
 
 if __name__ == '__main__':
