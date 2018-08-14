@@ -117,6 +117,7 @@ class Compressor(object):
         print("processing")
         
         for (ix, iy) in indices:
+            # TODO: rewrite
             data = np.transpose(dimension_reduce_rf_point(rf, ix, iy), (2,0,1))[np.newaxis,:,:,:]
             data = Variable(torch.from_numpy(data)).cuda().float()
             tmp, _, _, _ = model.encode(data)

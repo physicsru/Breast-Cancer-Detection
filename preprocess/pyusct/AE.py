@@ -91,14 +91,9 @@ class RFFullDataset(Dataset):
     
 # input 800 dim
 class RFCompressedDataset(Dataset):
-    def __init__(self, input_files, output_files):
-        X = []
-        y = []
-        for input_file, output_file in zip(input_files, output_files):
-            X.append(np.load(input_file))
-            y.append(np.load(output_file))
-        self.X = np.concatenate(X, axis=0)
-        self.y = np.concatenate(y, axis=0)
+    def __init__(self, X, y):
+        self.X = X
+        self.y = y
         
     def __len__(self):
         return len(self.y)
