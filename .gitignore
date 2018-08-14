@@ -3,6 +3,7 @@
 *.pyc
 *.pickle
 *.pth
+*.txt
 .ipynb_checkpoints/
 
 

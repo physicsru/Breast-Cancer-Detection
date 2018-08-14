@@ -23,14 +23,14 @@ class clf():
     def __init__(self, dataset_dir, scaler_path):
         self.lr = 1e-3
         self.epochs = 100
-        self.batch_size = 32
+        self.batch_size = 64
         self.input_list = sorted(glob.glob(os.path.join(dataset_dir, "input/*.npy")))
         self.output_list = sorted(glob.glob(os.path.join(dataset_dir, "output/*.npy")))
         self.scaler = pickle.load(open(scaler_path, 'rb'))
         X_train, X_test, y_train, y_test = train_test_split(self.input_list, self.output_list, test_size=0.2, random_state=42)
         self.traindataset = RFFullDataset(X_train, y_train, self.scaler)
         self.testdataset = RFFullDataset(X_test, y_test, self.scaler)
-        print(self.lr, self.epochs)
+        print('lr=',self.lr, 'epoch=',self.epochs, 'batch_size', self.batch_size)
         
 
     def train(self, AE_weight_path, model_output_path):
@@ -42,7 +42,7 @@ class clf():
         self.clf_network = clf_network().cuda()
         
         self.ae_network.load_state_dict(torch.load(AE_weight_path))
-        all_params = list(self.ae_network.parameters()) + list(self.clf_network.parameters())
+        all_params = list(self.clf_network.parameters())
         
         optimizer = torch.optim.Adam(all_params, lr=self.lr, weight_decay=1e-4)
         criterion = nn.CrossEntropyLoss().cuda()
@@ -67,8 +67,8 @@ class clf():
                 start_time = time.time()
             
             #if (i == 0) and (epoch+1 % 2 == 0):
-            torch.save(self.ae_network.state_dict(), model_output_path + 'ae_epoch_e3_'+str(epoch+1)+'.pth')
-            torch.save(self.clf_network.state_dict(),  model_output_path + 'clf_epoch_e3_'+str(epoch+1)+'.pth')
+            torch.save(self.ae_network.state_dict(), model_output_path + 'ae_epoch_e3_frosenAE_b64'+str(epoch+1)+'.pth')
+            torch.save(self.clf_network.state_dict(),  model_output_path + 'clf_epoch_e3_frosenAE_b64'+str(epoch+1)+'.pth')
             print('Model saved')
 
 
