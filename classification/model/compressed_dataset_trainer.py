@@ -1,10 +1,10 @@
-import os, sys, glob, time, math
+import os, sys, glob, time, math, pickle
 sys.path.append("../preprocess/pyusct/")
 
 # from model/
-from raw_dataset_model import Raw_dataset_clf
+from compressed_dataset_model import Compressed_dataset_clf
 # from pyusct/
-from AE import RFFullDataset
+from AE import  RFCompressedDataset
 
 import numpy as np
 from sklearn import metrics
@@ -15,21 +15,28 @@ from torch import nn
 from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
 
-import matplotlib.pyplot as plt
+import matplot.pyplot as plt
 
-class Raw_dataset_trainer():
-    def __init__(self, dataset_dir, AE_weight_path, scaler_path, lr=1e-3, epochs=100, batch_size=32, random_state=42):
-        self.model = Raw_dataset_clf(AE_weight_path, scaler_path)
+
+class Compressed_dataset_trainer():
+    def __init__(self, dataset_dir, lr=1e-3, epochs=100000, batch_size=32, random_state=42):
+        self.model = Compressed_dataset_clf()
         
         self.lr, self.epochs, self.batch_size = lr, epochs, batch_size
         self.input_list = sorted(glob.glob(os.path.join(dataset_dir, "input/*.npy")))
         self.output_list = sorted(glob.glob(os.path.join(dataset_dir, "output/*.npy")))
-        X_train, X_test, y_train, y_test = train_test_split(self.input_list, self.output_list, test_size=0.2, random_state=42)
-        self.traindataset = RFFullDataset(X_train, y_train, self.model.scaler)
-        self.testdataset = RFFullDataset(X_test, y_test, self.model.scaler)
-        self.epoch_loss = []
-        return
+        X, y = [], []
+        for input_file, output_file in zip(input_list, output_list):
+            X.append(np.load(input_file))
+            y.append(np.load(output_file))
+        self.X, self.y = np.concatenate(X, axis=0), np.concatenate(y, axis=0)
+        X_train, X_test, y_train, y_test = train_test_split(self.X, self.y, test_size=0.2, random_state=42)
         
+        self.traindataset = RFCompressedDataset(X_train, y_train)
+        self.testdataset = RFCompressedDataset(X_test, y_test)
+        self.epoch_loss = []
+        return 
+    
 
     def train(self, model_output_path):
         dataloader = DataLoader(self.traindataset, self.batch_size, 
@@ -41,25 +48,23 @@ class Raw_dataset_trainer():
         
         for epoch in range(self.epochs):
             start_time = time.time()
-            for i, (data, label) in enumerate(dataloader):
+            for i, data, label in enumerate(dataloader):
                 data = Variable(data).cuda().float()
                 label = Variable(label).view(-1).cuda().long()
                 
-                pred = self.model.pred(data)
-                clf_loss = criterion(pred, label)
+                clf_pred = self.clf_network(data)
+                clf_loss = criterion(clf_pred, label)
 
                 optimizer.zero_grad()
                 clf_loss.backward()
                 optimizer.step()
 
-                #if i+1 % 10 == 0:
-                print('Epoch:', epoch, 'Iter', i, 'Loss:', clf_loss.item(), 'Time:', time.time()-start_time)
+                if i % 100 == 0:
+                    print('Epoch:', epoch, 'Iter', i, 'Loss:', clf_loss.item(), 'Time:', time.time()-start_time)
                 start_time = time.time()
-            
             self.epoch_loss.append(clf_loss.item())
-            if epoch % 10 == 0:
-                name = 'raw_data_epoch_'+str(epoch)+'.pth'
-                self.model.save_model(model_output_path, name)
+            if epoch % 10000 == 0:
+                torch.save(self.clf_network.state_dict(),  model_output_path + 'clf_compressed_data_epoch_'+str(epoch)+'.pth')
                 print('Model saved')
         return
 
@@ -68,12 +73,13 @@ class Raw_dataset_trainer():
         dataloader = DataLoader(self.testdataset, self.batch_size, 
                                 shuffle=True)
         if model_params:
-            self.model.reload_params(model_params)
+            self.clf_network = network.clf_network().cuda()
+            self.clf_network.load_state_dict(torch.load(model_params))
 
         acc_list, f1_list, pre_list, recall_list = [], [], [], []
         start_time = time.time()
         for i, (data, label) in enumerate(dataloader):
-            data = Variable(data_label[0]).cuda().float()
+            data = Variable(data).cuda().float()
             prob_out = self.model.pred(data).detach().cpu().numpy()
             prob_idx = np.argmax(prob_out, 1)
             
@@ -99,7 +105,3 @@ class Raw_dataset_trainer():
     def plot_learn_curve(self):
         plt.plot(self.epoch_loss)
         return
-        
-        
-
-
