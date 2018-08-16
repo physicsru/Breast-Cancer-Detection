@@ -41,6 +41,11 @@ class Raw_dataset_clf():
         torch.save(self.ae_network.state_dict(), output_path + 'ae_' + name)
         torch.save(self.clf_network.state_dict(), output_path + 'clf_' + name)
         return
+    
+    def reload_params(self, model_params):
+        self.ae_network.load_state_dict(torch.load(model_params[0]))
+        self.clf_network.load_state_dict(torch.load(model_params[1]))
+        return
         
 
 

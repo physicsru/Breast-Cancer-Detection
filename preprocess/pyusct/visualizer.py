@@ -35,17 +35,17 @@ class Visualizer(object):
             raw = dimension_reduce_rf_point(self.rf, ix, iy)
             scaled = self.model.scaler.transform(raw.reshape(1, -1))
             batch.append(scaled)
-            if i % batch_size +1 == batch_size or i == len(indices)-1:
+            if i % batch_size +1 == batch_size or i == len(self.indices)-1:
                 data = np.array(batch).reshape((-1, 16, 256, 200))
                 data = Variable(torch.from_numpy(data)).cuda().float()
                 pred = self.model.pred(data).detach().cpu().numpy()
-                res.append(np.argmax(pred, 1))
+                res.append(pred[:,1])
                 print("predict point {}".format(i))
                 batch = []
             
             truth[ix-offset[0], iy-offset[1]] = self.rf.medium_sct[ix, iy]
               
-        self.res = np.concatenate(res).reshape(shape)
+        self.res = np.transpose(np.concatenate(res).reshape(shape))
         self.truth = truth
                 
     def visualize_subimage(self):
