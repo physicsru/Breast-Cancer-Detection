@@ -18,7 +18,11 @@ from torch.utils.data import Dataset, DataLoader
 import matplotlib.pyplot as plt
 
 class Raw_dataset_trainer():
-    def __init__(self, dataset_dir, AE_weight_path, scaler_path, lr=1e-3, epochs=100, batch_size=32, random_state=42):
+    def __init__(self, dataset_dir, AE_weight_path, scaler_path, model_output_path, lr=1e-3, epochs=100, batch_size=32, random_state=42):
+        dataset_name = dataset_dir.split('/')[-1]
+        self.output_path = os.path.join(model_output_path, dataset_name + '_lr_' + str(lr) + '_epoch_' + str(epochs) + '_batchsize_' + str(batch_size) + '/')
+        if not os.path.exists(self.output_path):
+            os.makedirs(self.output_path)
         self.model = Raw_dataset_clf(AE_weight_path, scaler_path)
         
         self.lr, self.epochs, self.batch_size = lr, epochs, batch_size
@@ -31,7 +35,7 @@ class Raw_dataset_trainer():
         return
         
 
-    def train(self, model_output_path):
+    def train(self):
         dataloader = DataLoader(self.traindataset, self.batch_size, 
                                 shuffle=True)
         all_params = self.model.get_params()
@@ -59,7 +63,7 @@ class Raw_dataset_trainer():
             self.epoch_loss.append(clf_loss.item())
             if epoch % 10 == 0:
                 name = 'raw_data_epoch_'+str(epoch)+'.pth'
-                self.model.save_model(model_output_path, name)
+                self.model.save_model(self.output_path, name)
                 print('Model saved')
         return
 
@@ -69,31 +73,36 @@ class Raw_dataset_trainer():
                                 shuffle=True)
         if model_params:
             self.model.reload_params(model_params)
-
-        acc_list, f1_list, pre_list, recall_list = [], [], [], []
+        criterion = nn.CrossEntropyLoss().cuda()
+        acc_list, f1_list, pre_list, recall_list,loss_list = [], [], [], [], []
         start_time = time.time()
         for i, (data, label) in enumerate(dataloader):
-            data = Variable(data_label[0]).cuda().float()
+            data = Variable(data).cuda().float()
+            label_tensor = Variable(label).view(-1).cuda().long()
             prob_out = self.model.pred(data).detach().cpu().numpy()
             prob_idx = np.argmax(prob_out, 1)
+            pred = self.model.pred(data)
             
             accuracy = metrics.accuracy_score(label, prob_idx)
             precision = metrics.precision_score(label, prob_idx)
             recall = metrics.recall_score(label, prob_idx)
             f1_score = metrics.f1_score(label, prob_idx)
+            clf_loss = criterion(pred, label_tensor)
+            loss_list.append(clf_loss.item())
             acc_list.append(accuracy)
             pre_list.append(precision)
             recall_list.append(recall)
             f1_list.append(f1_score)
 
-            print('Iter', i, 'Time:', time.time()-start_time)
-            print(accuracy, f1_score, precision, recall)
+            print('Iter', i, 'Time:', f'{(time.time()-start_time):.4f}')
+            print(f'{accuracy:.4f}', f'{f1_score:.4f}', f'{precision:.4f}', f'{recall:.4f}')
             start_time = time.time()
 
-        print('accuracy:', np.mean(acc_list))
-        print('f1_score:', np.mean(f1_list))
-        print('precision:', np.mean(pre_list))
-        print('recall', np.mean(recall_list))
+        print('accuracy:', round(np.mean(acc_list),4))
+        print('f1_score:', round(np.mean(f1_list),4))
+        print('precision:', round(np.mean(pre_list),4))
+        print('recall', round(np.mean(recall_list),4))
+        print('loss', round(np.mean(loss_list),4))
         return
         
     def plot_learn_curve(self):

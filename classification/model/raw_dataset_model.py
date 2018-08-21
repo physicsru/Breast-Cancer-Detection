@@ -23,7 +23,8 @@ class Raw_dataset_clf():
             self.ae_network.load_state_dict(torch.load(model_params[0]))
             self.clf_network.load_state_dict(torch.load(model_params[1]))
         else:
-            self.ae_network.load_state_dict(torch.load(AE_weight_path))
+            #self.ae_network.load_state_dict(torch.load(AE_weight_path))
+            pass
             
         
         return
