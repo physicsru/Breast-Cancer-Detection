@@ -2,9 +2,9 @@ import os, sys, glob, time, math
 sys.path.append("../pyusct/")
 
 # from model/
-from raw_dataset_model import Raw_dataset_clf
+from raw_dataset_model_3d import Raw_dataset_clf
 # from pyusct/
-from pytorch_dataset import RFFullDataset
+from pytorch_dataset import RFFullDataset3d
 
 import numpy as np
 from sklearn import metrics
@@ -29,8 +29,8 @@ class Raw_dataset_trainer():
         self.input_list = sorted(glob.glob(os.path.join(dataset_dir, "input/*.npy")))
         self.output_list = sorted(glob.glob(os.path.join(dataset_dir, "output/*.npy")))
         X_train, X_test, y_train, y_test = train_test_split(self.input_list, self.output_list, test_size=0.2, random_state=42)
-        self.traindataset = RFFullDataset(X_train, y_train, self.model.scaler)
-        self.testdataset = RFFullDataset(X_test, y_test, self.model.scaler)
+        self.traindataset = RFFullDataset3d(X_train, y_train, self.model.scaler)
+        self.testdataset = RFFullDataset3d(X_test, y_test, self.model.scaler)
         self.train_loss = []
         self.valid_loss = []
         return

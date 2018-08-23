@@ -20,6 +20,23 @@ class RFFullDataset(Dataset):
         shape = data.shape
         scaled_data = self.scaler.transform(data.reshape(1, -1))
         return scaled_data.reshape(shape[1],shape[2],shape[3]), label
+    
+class RFFullDataset3d(Dataset):
+    def __init__(self, input_files, output_files, scaler):
+        self.file_paths = input_files
+        self.label_paths = output_files
+        self.scaler = scaler
+        return 
+        
+    def __len__(self):
+        return len(self.file_paths)
+    
+    def __getitem__(self, idx):
+        data = np.load(self.file_paths[idx])
+        label = np.load(self.label_paths[idx])
+        shape = data.shape
+        scaled_data = self.scaler.transform(data.reshape(1, -1))
+        return scaled_data.reshape(1, shape[1],shape[2],shape[3]), label
 
     
 # input 800 dim
