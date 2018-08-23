@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 
 class Raw_dataset_trainer():
     def __init__(self, dataset_dir, AE_weight_path, scaler_path, model_output_path, lr=1e-3, epochs=100, batch_size=32, random_state=42):
-        dataset_name = dataset_dir.split('/')[-1]
+        dataset_name = dataset_dir.split('/')[-2]
         self.output_path = os.path.join(model_output_path, dataset_name + '_lr_' + str(lr) + '_epoch_' + str(epochs) + '_batchsize_' + str(batch_size) + '/')
         if not os.path.exists(self.output_path):
             os.makedirs(self.output_path)
@@ -45,6 +45,7 @@ class Raw_dataset_trainer():
         
         for epoch in range(self.epochs):
             start_time = time.time()
+            temploss = []
             for i, (data, label) in enumerate(dataloader):
                 data = Variable(data).cuda().float()
                 label = Variable(label).view(-1).cuda().long()
@@ -59,12 +60,17 @@ class Raw_dataset_trainer():
                 #if i+1 % 10 == 0:
                 print('Epoch:', epoch, 'Iter', i, 'Loss:', clf_loss.item(), 'Time:', time.time()-start_time)
                 start_time = time.time()
-            
-            self.epoch_loss.append(clf_loss.item())
+                temploss.append(clf_loss.item())
+            self.epoch_loss.append(np.mean(temploss))
             if epoch % 10 == 0:
                 name = 'raw_data_epoch_'+str(epoch)+'.pth'
                 self.model.save_model(self.output_path, name)
                 print('Model saved')
+        
+        # save final model
+        name = 'raw_data_epoch_'+str(self.epochs)+'.pth'
+        self.model.save_model(self.output_path, name)
+        print('Training completed')
         return
 
 

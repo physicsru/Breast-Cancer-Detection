@@ -23,12 +23,12 @@ class Autoencoder(nn.Module):
         
         self.pool = nn.MaxPool2d(kernel_size=(3, 3), return_indices=True)
         self.encoder_linear = nn.Sequential(
-            nn.Linear(22440, 800),
+            nn.Linear(22440, 2048),
             nn.ReLU(True),
         )
         
         self.decoder_linear = nn.Sequential(
-            nn.Linear(800, 22440),
+            nn.Linear(2048, 22440),
             nn.ReLU(True),
         )
         self.unpool = nn.MaxUnpool2d(kernel_size=(3, 3))
