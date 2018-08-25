@@ -37,5 +37,6 @@ class Raw_dataset_clf():
         self.model.load_state_dict(torch.load(model_params))
         return
         
-
+    def __str__(self):
+        return "3d"
 

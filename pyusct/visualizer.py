@@ -17,11 +17,10 @@ import matplotlib.pyplot as plt
 class Visualizer(object):
     
     # type: "AE" "AE_fixed" "PCA"
-    def __init__(self, source, scaler_path=None, model_params=None, type="AE"):
+    def __init__(self, source, scaler_path=None, model=None, type="AE"):
         
         self.rf = RFdata(source)
-        self.model = Raw_dataset_clf(None, scaler_path, model_params)
-        
+        self.model = model
         return 
     
     def extract_subimage(self, offset=[256, 256], shape=[100, 100]):
@@ -35,7 +34,10 @@ class Visualizer(object):
             scaled = self.model.scaler.transform(raw.reshape(1, -1))
             batch.append(scaled)
             if i % batch_size + 1 == batch_size or i == len(self.indices)-1:
-                data = np.array(batch).reshape((-1, 16, 256, 200))
+                if str(self.model)=="2d":
+                    data = np.array(batch).reshape((-1, 16, 256, 200))
+                elif str(self.model)=="3d":
+                    data = np.array(batch).reshape((-1, 1, 16, 256, 200))
                 data = Variable(torch.from_numpy(data)).cuda().float()
                 pred = self.model.pred(data).detach().cpu().numpy()
                 res.append(pred[:,1])
@@ -111,4 +113,4 @@ def dimension_reduce_rf_point(rf, ix, iy):
     offsets = np.arange(-100, 100)
     _, subset = rf.getPointSubset((ix,iy), offsets)
     #Attention only for the wire map! : return subset[::2, :, :]
-    return subset[:, :, :]
+    return subset[::2, :, :]

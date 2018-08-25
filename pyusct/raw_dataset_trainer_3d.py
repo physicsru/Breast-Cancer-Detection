@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 class Raw_dataset_trainer():
     def __init__(self, dataset_dir, AE_weight_path, scaler_path, model_output_path, lr=1e-3, epochs=100, batch_size=32, random_state=42):
         dataset_name = dataset_dir.split('/')[-2]
-        self.output_path = os.path.join(model_output_path, dataset_name + '_lr_' + str(lr) + '_epoch_' + str(epochs) + '_batchsize_' + str(batch_size) + '/')
+        self.output_path = os.path.join(model_output_path, dataset_name + '_3d_lr_' + str(lr) + '_epoch_' + str(epochs) + '_batchsize_' + str(batch_size) + '/')
         if not os.path.exists(self.output_path):
             os.makedirs(self.output_path)
         self.model = Raw_dataset_clf(AE_weight_path, scaler_path)
@@ -125,7 +125,7 @@ class Raw_dataset_trainer():
         return
         
     def plot_learn_curve(self):
-        plt.plot(self.epoch_loss)
+        plt.plot(self.train_loss)
         plt.plot(self.valid_loss)
         plt.show()
         return

@@ -47,6 +47,9 @@ class Raw_dataset_clf():
         self.ae_network.load_state_dict(torch.load(model_params[0]))
         self.clf_network.load_state_dict(torch.load(model_params[1]))
         return
+    
+    def __str__(self):
+        return "2d"
         
 
 
