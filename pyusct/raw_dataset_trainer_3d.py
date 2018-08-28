@@ -18,14 +18,14 @@ from torch.utils.data import Dataset, DataLoader
 import matplotlib.pyplot as plt
 
 class Raw_dataset_trainer():
-    def __init__(self, dataset_dir, AE_weight_path, scaler_path, model_output_path, lr=1e-3, epochs=100, batch_size=32, random_state=42):
+    def __init__(self, dataset_dir, AE_weight_path, scaler_path, model_output_path, lr=1e-3, epochs=100, batch_size=32, l2_alpha=1e-4, random_state=42):
         dataset_name = dataset_dir.split('/')[-2]
-        self.output_path = os.path.join(model_output_path, dataset_name + '_3d_lr_' + str(lr) + '_epoch_' + str(epochs) + '_batchsize_' + str(batch_size) + '/')
+        self.output_path = os.path.join(model_output_path, dataset_name + '_3d_lr_' + str(lr) + '_epoch_' + str(epochs) + '_batchsize_' + str(batch_size) + '_l2_alpha_' + str(l2_alpha) + '/')
         if not os.path.exists(self.output_path):
             os.makedirs(self.output_path)
         self.model = Raw_dataset_clf(AE_weight_path, scaler_path)
         
-        self.lr, self.epochs, self.batch_size = lr, epochs, batch_size
+        self.lr, self.epochs, self.batch_size, self.l2_alpha = lr, epochs, batch_size, l2_alpha
         self.input_list = sorted(glob.glob(os.path.join(dataset_dir, "input/*.npy")))
         self.output_list = sorted(glob.glob(os.path.join(dataset_dir, "output/*.npy")))
         X_train, X_test, y_train, y_test = train_test_split(self.input_list, self.output_list, test_size=0.2, random_state=42)
@@ -43,7 +43,7 @@ class Raw_dataset_trainer():
         dataloader_valid = DataLoader(self.testdataset, self.batch_size, 
                                 shuffle=True)
         all_params = self.model.get_params()
-        optimizer = torch.optim.Adam(all_params, lr=self.lr, weight_decay=1e-4)
+        optimizer = torch.optim.Adam(all_params, lr=self.lr, weight_decay=self.l2_alpha)
         criterion = nn.CrossEntropyLoss().cuda()
         print('start training')
         
@@ -80,7 +80,7 @@ class Raw_dataset_trainer():
             
             self.train_loss.append(np.mean(train_loss))
             self.valid_loss.append(np.mean(valid_loss))
-            if (epoch+1) % 10 == 0:
+            if (epoch+1) % 5 == 0:
                 name = 'raw_data_epoch_'+str(epoch)+'.pth'
                 self.model.save_model(self.output_path, name)
                 print('Model saved')
