@@ -3,7 +3,8 @@ sys.path.append("../preprocess/pyusct/")
 
 # from pyusct/
 from scaler import RFScaler
-from con3d_model import Clf_conv3d
+#from con3d_model import Clf_conv3d
+from VGG3d_model import Clf_conv3d
 
 import torch
 from torch import nn

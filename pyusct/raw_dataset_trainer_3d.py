@@ -18,9 +18,9 @@ from torch.utils.data import Dataset, DataLoader
 import matplotlib.pyplot as plt
 
 class Raw_dataset_trainer():
-    def __init__(self, dataset_dir, AE_weight_path, scaler_path, model_output_path, lr=1e-3, epochs=100, batch_size=32, l2_alpha=1e-4, random_state=42):
+    def __init__(self, dataset_dir, AE_weight_path, scaler_path, model_output_path, lr=1e-3, epochs=100, batch_size=8, l2_alpha=1e-4, random_state=42):
         dataset_name = dataset_dir.split('/')[-2]
-        self.output_path = os.path.join(model_output_path, dataset_name + '_3d_lr_' + str(lr) + '_epoch_' + str(epochs) + '_batchsize_' + str(batch_size) + '_l2_alpha_' + str(l2_alpha) + '/')
+        self.output_path = os.path.join(model_output_path, dataset_name + '_VGG_3d_lr_' + str(lr) + '_epoch_' + str(epochs) + '_batchsize_' + str(batch_size) + '_l2_alpha_' + str(l2_alpha) + '/')
         if not os.path.exists(self.output_path):
             os.makedirs(self.output_path)
         self.model = Raw_dataset_clf(AE_weight_path, scaler_path)

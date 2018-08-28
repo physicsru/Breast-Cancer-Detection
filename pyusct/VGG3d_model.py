@@ -11,47 +11,88 @@ class Clf_conv3d(nn.Module):
     def __init__(self):
         super(Clf_conv3d, self).__init__()
 
-        self.encoder_conv = nn.Sequential(
-            nn.Conv3d(1, 2, kernel_size=(3, 3, 3), padding=(1, 1, 1)),
-            nn.BatchNorm3d(2),
+        self.encoder_conv1_1 = nn.Sequential(
+            nn.Conv3d(1, 32, kernel_size=(3, 3, 3), padding=(2, 2, 2), stride=1),
+            nn.BatchNorm3d(32),
             nn.ReLU(True), 
         )
-        self.encoder_conv2 = nn.Sequential(
-            nn.Conv3d(2, 4, kernel_size=(3, 3, 3), padding=(1, 1, 1)),
-            nn.BatchNorm3d(4),
+        self.encoder_conv1_2 = nn.Sequential(
+            nn.Conv3d(32, 32, kernel_size=(3, 3, 3), padding=(2, 2, 2), stride=1),
+            nn.BatchNorm3d(32),
             nn.ReLU(True), 
         )
         
-        self.pool = nn.MaxPool3d(kernel_size=(3, 3, 3), return_indices=True)
+        self.pool1 = nn.MaxPool3d(kernel_size=(3, 3, 3), return_indices=True)
         
-        self.encoder_conv3 = nn.Sequential(
-            nn.Conv3d(4, 8, kernel_size=(3, 3, 3), padding=(1, 1, 1)),
-            nn.BatchNorm3d(8),
+        self.encoder_conv2_1 = nn.Sequential(
+            nn.Conv3d(32, 64, kernel_size=(3, 3, 3), padding=(2, 2, 2), stride=1),
+            nn.BatchNorm3d(64),
             nn.ReLU(True), 
         )
-        self.encoder_conv4 = nn.Sequential(
-            nn.Conv3d(8, 16, kernel_size=(3, 3, 3), padding=(1, 1, 1)),
-            nn.BatchNorm3d(16),
+        self.encoder_conv2_2 = nn.Sequential(
+            nn.Conv3d(64, 64, kernel_size=(3, 3, 3), padding=(2, 2, 2), stride=1),
+            nn.BatchNorm3d(64),
             nn.ReLU(True), 
         )
         
         self.pool2 = nn.MaxPool3d(kernel_size=(3, 3, 3), return_indices=True)  
         
-        self.encoder_conv = nn.Sequential(
-            nn.Conv3d(16, 32, kernel_size=(3, 3, 3), padding=(1, 1, 1)),
-            nn.BatchNorm3d(32),
+        self.encoder_conv3_1 = nn.Sequential(
+            nn.Conv3d(64, 128, kernel_size=(3, 3, 3), padding=(2, 2, 2), stride=1),
+            nn.BatchNorm3d(128),
             nn.ReLU(True), 
         )
-        self.encoder_conv2 = nn.Sequential(
-            nn.Conv3d(32, 64, kernel_size=(3, 3, 3), padding=(1, 1, 1)),
-            nn.BatchNorm3d(64),
+        self.encoder_conv3_2 = nn.Sequential(
+            nn.Conv3d(128, 128, kernel_size=(3, 3, 3), padding=(2, 2, 2), stride=1),
+            nn.BatchNorm3d(128),
+            nn.ReLU(True), 
+        )
+        self.encoder_conv3_3 = nn.Sequential(
+            nn.Conv3d(128, 128, kernel_size=(3, 3, 3), padding=(2, 2, 2), stride=1),
+            nn.BatchNorm3d(128),
             nn.ReLU(True), 
         )
         
         self.pool3 = nn.MaxPool3d(kernel_size=(3, 3, 3), return_indices=True)
         
+        self.encoder_conv4_1 = nn.Sequential(
+            nn.Conv3d(128, 256, kernel_size=(3, 3, 3), padding=(2, 2, 2), stride=1),
+            nn.BatchNorm3d(256),
+            nn.ReLU(True), 
+        )
+        self.encoder_conv4_2 = nn.Sequential(
+            nn.Conv3d(256, 256, kernel_size=(3, 3, 3), padding=(2, 2, 2), stride=1),
+            nn.BatchNorm3d(256),
+            nn.ReLU(True), 
+        )
+        self.encoder_conv4_3 = nn.Sequential(
+            nn.Conv3d(256, 256, kernel_size=(3, 3, 3), padding=(2, 2, 2), stride=1),
+            nn.BatchNorm3d(256),
+            nn.ReLU(True), 
+        )
+        
+        self.pool4 = nn.MaxPool3d(kernel_size=(3, 3, 3), return_indices=True)
+        
+        self.encoder_conv5_1 = nn.Sequential(
+            nn.Conv3d(256, 256, kernel_size=(3, 3, 3), padding=(2, 2, 2), stride=1),
+            nn.BatchNorm3d(256),
+            nn.ReLU(True), 
+        )
+        self.encoder_conv5_2 = nn.Sequential(
+            nn.Conv3d(256, 256, kernel_size=(3, 3, 3), padding=(2, 2, 2), stride=1),
+            nn.BatchNorm3d(256),
+            nn.ReLU(True), 
+        )
+        self.encoder_conv5_3 = nn.Sequential(
+            nn.Conv3d(256, 256, kernel_size=(3, 3, 3), padding=(2, 2, 2), stride=1),
+            nn.BatchNorm3d(256),
+            nn.ReLU(True), 
+        )
+        
+        self.pool5 = nn.MaxPool3d(kernel_size=(3, 3, 3), return_indices=True)
+        
         self.encoder_linear = nn.Sequential(
-            nn.Linear(112200, 800),
+            nn.Linear(9216, 800),
             nn.ReLU(True),
         )
         
@@ -92,17 +133,36 @@ class Clf_conv3d(nn.Module):
         return dense4
     
     def encode(self, x):
-        x = self.encoder_conv(x)
-        x = self.encoder_conv2(x)
+        x = self.encoder_conv1_1(x)
+        x = self.encoder_conv1_2(x)
         shape = x.shape
-        x, indices = self.pool(x)
+        x, indices = self.pool1(x)
         shape_pooled = x.shape
-        x = self.encoder_conv(x)
-        x = self.encoder_conv2(x)
+        x = self.encoder_conv2_1(x)
+        x = self.encoder_conv2_2(x)
         shape = x.shape
-        x, indices = self.pool(x)
+        x, indices = self.pool2(x)
         shape_pooled = x.shape
-        x = x.view(shape[0], -1)
+        x = self.encoder_conv3_1(x)
+        x = self.encoder_conv3_2(x)
+        x = self.encoder_conv3_3(x)
+        shape = x.shape
+        x, indices = self.pool3(x)
+        shape_pooled = x.shape
+        x = self.encoder_conv4_1(x)
+        x = self.encoder_conv4_2(x)
+        x = self.encoder_conv4_3(x)
+        shape = x.shape
+        x, indices = self.pool4(x)
+        shape_pooled = x.shape
+        x = self.encoder_conv5_1(x)
+        x = self.encoder_conv5_2(x)
+        x = self.encoder_conv5_3(x)
+        shape = x.shape
+        batch_size = shape[0]
+        x, indices = self.pool5(x)
+        shape_pooled = x.shape      
+        x = x.view(batch_size, -1)
         # print(shape, shape_pooled, x.shape)
         x = self.encoder_linear(x)
         return x
