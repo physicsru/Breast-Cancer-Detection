@@ -23,14 +23,14 @@ class Visualizer(object):
         self.model = model
         return 
     
-    def extract_subimage(self, offset=[256, 256], shape=[100, 100]):
+    def extract_subimage(self, offset=[256, 256], shape=[100, 100], type="normal"):
         res = []
         truth = np.zeros(shape)
         self.indices = generate_indices(shape, offset)
         batch_size = 32
         batch = []
         for i, (ix, iy) in enumerate(self.indices):
-            raw = dimension_reduce_rf_point(self.rf, ix, iy)
+            raw = dimension_reduce_rf_point(self.rf, ix, iy, type)
             scaled = self.model.scaler.transform(raw.reshape(1, -1))
             batch.append(scaled)
             if i % batch_size + 1 == batch_size or i == len(self.indices)-1:
@@ -109,8 +109,9 @@ def generate_indices(shape, offset):
     return indices        
                 
                 
-def dimension_reduce_rf_point(rf, ix, iy):
+def dimension_reduce_rf_point(rf, ix, iy, type="normal"):
     offsets = np.arange(-100, 100)
     _, subset = rf.getPointSubset((ix,iy), offsets)
     #Attention only for the wire map! : return subset[::2, :, :]
-    return subset[::2, :, :]
+    if type=="normal": return subset
+    if type=="wire": return subset[::2, :, :]

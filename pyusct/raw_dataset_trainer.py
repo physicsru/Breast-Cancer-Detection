@@ -80,6 +80,7 @@ class Raw_dataset_trainer():
             
             self.train_loss.append(np.mean(train_loss))
             self.valid_loss.append(np.mean(valid_loss))
+            print("Epoch: {}, train_loss: {}, valid_loss: {}".format(epoch, self.train_loss[-1], self.valid_loss[-1]))
             if (epoch+1) % 10 == 0:
                 name = 'raw_data_epoch_'+str(epoch)+'.pth'
                 self.model.save_model(self.output_path, name)
