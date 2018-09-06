@@ -49,8 +49,8 @@ class Visualizer(object):
                 batch = []
             
             truth[ix-offset[0], iy-offset[1]] = self.rf.medium_sct[ix, iy]
-              
-        self.res = np.transpose(np.concatenate(res).reshape(shape))
+
+        self.res = np.concatenate(res).reshape(shape)
         self.truth = truth
                 
     def visualize_prob(self):
@@ -115,7 +115,8 @@ def generate_indices(shape, offset):
                 
 def dimension_reduce_rf_point(rf, ix, iy, type="normal"):
     offsets = np.arange(-100, 100)
-    _, subset = rf.getPointSubset((ix,iy), offsets)
+    # Attention! matlab meshgrid -> transpose of python grid
+    _, subset = rf.getPointSubset((iy, ix), offsets)
     #Attention only for the wire map! : return subset[::2, :, :]
     if type=="normal": return subset
     if type=="wire": return subset[::2, :, :]
