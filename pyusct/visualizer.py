@@ -9,7 +9,9 @@ from torch import nn
 from torch.autograd import Variable
 from AE import Autoencoder
 
-from raw_dataset_model import Raw_dataset_clf
+from conv2d_model import Clf_conv2d
+from conv3d_model import Clf_conv3d
+from conv3d_VGG_model import Clf_conv3d_VGG
 
 
 import matplotlib.pyplot as plt
@@ -37,6 +39,9 @@ class Visualizer(object):
                     data = np.array(batch).reshape((-1, 16, 256, 200))
                 elif str(self.model)=="3d":
                     data = np.array(batch).reshape((-1, 1, 16, 256, 200))
+                elif str(self.model)=="3d_VGG":
+                    data = np.array(batch).reshape((-1, 1, 16, 256, 200))
+                    
                 data = Variable(torch.from_numpy(data)).cuda().float()
                 pred = self.model.pred(data).detach().cpu().numpy()
                 res.append(pred[:,1])

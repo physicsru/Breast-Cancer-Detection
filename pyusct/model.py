@@ -1,7 +1,6 @@
 import os, sys, math, pickle
-sys.path.append("../preprocess/pyusct/")
 
-from scaler import RFscaler
+from scaler import RFScaler
 
 from AE import Autoencoder
 from conv2d_model import Clf_conv2d
@@ -70,7 +69,7 @@ class Conv_3d(Conv_prototype):
     
 class Conv_2d(Conv_prototype):
     
-    def __init__(self, scaler_path, AE_weight_path, model_params=None):
+    def __init__(self, AE_weight_path, scaler_path, model_params=None):
         
         Conv_prototype.__init__(self, scaler_path)
         
