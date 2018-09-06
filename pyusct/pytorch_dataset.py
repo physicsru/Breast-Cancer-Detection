@@ -37,17 +37,3 @@ class RFFullDataset3d(Dataset):
         shape = data.shape
         scaled_data = self.scaler.transform(data.reshape(1, -1))
         return scaled_data.reshape(1, shape[1],shape[2],shape[3]), label
-
-    
-# input 800 dim
-class RFCompressedDataset(Dataset):
-    def __init__(self, X, y):
-        self.X = X
-        self.y = y
-        return 
-        
-    def __len__(self):
-        return len(self.y)
-    
-    def __getitem__(self, idx):
-        return self.X[idx], self.y[idx]

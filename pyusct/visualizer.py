@@ -17,17 +17,16 @@ import matplotlib.pyplot as plt
 class Visualizer(object):
     
     # type: "AE" "AE_fixed" "PCA"
-    def __init__(self, source, scaler_path=None, model=None, type="AE"):
+    def __init__(self, source=None, model=None, type="AE"):
         
-        self.rf = RFdata(source)
+        self.rf = source
         self.model = model
         return 
     
-    def extract_subimage(self, offset=[256, 256], shape=[100, 100], type="normal"):
+    def extract_subimage(self, offset=[256, 256], shape=[100, 100], batch_size=32, type="normal"):
         res = []
         truth = np.zeros(shape)
         self.indices = generate_indices(shape, offset)
-        batch_size = 32
         batch = []
         for i, (ix, iy) in enumerate(self.indices):
             raw = dimension_reduce_rf_point(self.rf, ix, iy, type)
