@@ -93,7 +93,7 @@ class RandomSampleGenerator(object):
                     iy, ix= pos_neg[np.random.randint(0, len(pos_neg)), :]
 
                 _, subset = rf.getPointSubset((ix,iy), offsets)
-
+                ## Attention!
                 out_image = sct_img[iy-radius:iy+radius+1, ix-radius:ix+radius+1]
 
                 dataX[index] = subset[::interval[0],::interval[1],::interval[2]]
