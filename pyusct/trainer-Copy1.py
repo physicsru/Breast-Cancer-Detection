@@ -59,11 +59,15 @@ class Trainer_prototype():
             for i, (data, label) in enumerate(dataloader_train):
                 data = Variable(data).cuda().float()
                 if "SA" in self.type:
-                    label = Variable(label).view(-1, 1).cuda().float()
+                    label = Variable(label).cuda().float()
                 else:
-                    label = Variable(label).view(-1).cuda().long()
+                    label = Variable(label).cuda().long()
+                
+                label = label.view(-1, 1)
                 
                 pred = self.model.pred(data)
+                pred
+                print(pred.shape, label.shape)
                 clf_loss = criterion(pred, label)
                 train_loss.append(clf_loss.item())
                 optimizer.zero_grad()
@@ -79,9 +83,10 @@ class Trainer_prototype():
                 data = Variable(data).cuda().float()
                 label = Variable(label).cuda().float()
                 if "SA" in self.type:
-                    label = Variable(label).view(-1, 1).cuda().float()
+                    label = Variable(label).cuda().float()
                 else:
-                    label = Variable(label).view(-1).cuda().long()
+                    label = Variable(label).cuda().long()
+                label = label.view(-1, 1)
                     
                 pred = self.model.pred(data)
                 
@@ -143,14 +148,11 @@ class Trainer_prototype():
         return 
 class Trainer_3d_transfer(Trainer_prototype):
     
-    def __init__(self, dataset_dir, scaler_path, model_output_path, lr=1e-3, epochs=100, batch_size=32, l2_alpha=1e-3, type="3d_transfer", random_state=42, params=None):
+    def __init__(self, dataset_dir, scaler_path, model_output_path, lr=1e-3, epochs=100, batch_size=32, l2_alpha=1e-3, type="3d_transfer", random_state=42):
         
         Trainer_prototype.__init__(self, dataset_dir, model_output_path, lr, epochs, batch_size, l2_alpha, type, random_state)
         
-        if params:
-            self.model = Conv_3d_transfer(scaler_path, params)
-        else:
-            self.model = Conv_3d_transfer(scaler_path)
+        self.model = Conv_3d_transfer(scaler_path)
         
         X_train, X_test, y_train, y_test = train_test_split(self.input_list, self.output_list, test_size=0.2, random_state=42)
         self.traindataset = RFFullDataset3d(X_train, y_train, self.model.scaler)

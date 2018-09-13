@@ -8,6 +8,7 @@ from conv3d_model import Clf_conv3d
 from conv3d_VGG_model import Clf_conv3d_VGG
 from conv3d_VGG_SA_model import Clf_conv3d_VGG_SA
 from conv3d_SA_model import Clf_conv3d_SA
+from conv3d_ce_model import Clf_conv3d_ce
 
 import torch
 from torch import nn
@@ -27,12 +28,47 @@ class Conv_prototype():
         return pred
         
     def save_model(self, output_path, type, name):
-        torch.save(self.model.state_dict(), output_path + type + " " + name)
+        torch.save(self.model.state_dict(), output_path + type + "_" + name)
         return
     
     def reload_params(self, model_params):
         self.model.load_state_dict(torch.load(model_params))
         return
+    
+class Conv_3d_transfer(Conv_prototype):
+    
+    def __init__(self, scaler_path, model_params_SA=None):
+        
+        Conv_prototype.__init__(self, scaler_path)
+        
+        self.model_SA = Clf_conv3d_SA().cuda()
+        self.model_ce = Clf_conv3d_ce().cuda()
+        
+        if model_params_SA:
+            self.model_SA.load_state_dict(torch.load(model_params_SA))
+        
+        return
+    
+    def get_params(self):
+        return list(self.model_SA.parameters()) + list(self.model_ce.parameters())
+    
+    def pred(self, data):
+        pred = self.model_SA(data)
+        pred = self.model_ce(pred)
+        return pred
+    
+    def save_model(self, output_path, type, name):
+        torch.save(self.model_SA.state_dict(), output_path + type + "_" + 'SA_' + name)
+        torch.save(self.model_ce.state_dict(), output_path + type + "_" + 'ce_' + name)
+        return
+    
+    def reload_params(self, model_params):
+        self.model_SA.load_state_dict(torch.load(model_params[0]))
+        self.model_ce.load_state_dict(torch.load(model_params[1]))
+        return
+    
+    def __str__(self):
+        return "3d_transfer"
     
 class Conv_3d_SA(Conv_prototype):
     
