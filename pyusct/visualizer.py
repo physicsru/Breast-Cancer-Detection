@@ -35,16 +35,14 @@ class Visualizer(object):
             scaled = self.model.scaler.transform(raw.reshape(1, -1))
             batch.append(scaled)
             if i % batch_size + 1 == batch_size or i == len(self.indices)-1:
-                if str(self.model)=="2d":
+                if "2d" in str(self.model):
                     data = np.array(batch).reshape((-1, 16, 256, 200))
-                elif str(self.model)=="3d":
-                    data = np.array(batch).reshape((-1, 1, 16, 256, 200))
-                elif str(self.model)=="3d_VGG":
+                elif "3d" in str(self.model):
                     data = np.array(batch).reshape((-1, 1, 16, 256, 200))
                     
                 data = Variable(torch.from_numpy(data)).cuda().float()
                 pred = self.model.pred(data).detach().cpu().numpy()
-                res.append(pred[:,1])
+                res.append(pred[:, 0])
                 print("predict point {}".format(i))
                 batch = []
             

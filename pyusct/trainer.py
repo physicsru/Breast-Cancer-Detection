@@ -10,8 +10,10 @@ from torch import nn
 from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
 
-from model import Conv_2d, Conv_3d, Conv_3d_VGG, Conv_3d_VGG_SA
+from model import Conv_2d, Conv_3d, Conv_3d_VGG, Conv_3d_VGG_SA, Conv_3d_SA
 from pytorch_dataset import RFFullDataset, RFFullDataset3d
+
+import matplotlib.pyplot as plt
 
 class Trainer_prototype():
     
@@ -90,7 +92,7 @@ class Trainer_prototype():
             print("Epoch: {}, train_loss: {}, valid_loss: {}".format(epoch, self.train_loss[-1], self.valid_loss[-1]))
             if (epoch+1) % 10 == 0:
                 name = 'raw_data_epoch_'+str(epoch)+'.pth'
-                self.model.save_model(self.output_path, name)
+                self.model.save_model(self.output_path, self.type, name)
                 print('Model saved')
         return
 
@@ -137,6 +139,21 @@ class Trainer_prototype():
         plt.plot(self.valid_loss)
         plt.show()
         return 
+
+    
+class Trainer_3d_SA(Trainer_prototype):
+    
+    def __init__(self, dataset_dir, scaler_path, model_output_path, lr=1e-3, epochs=100, batch_size=32, l2_alpha=1e-3, random_state=42):
+        
+        Trainer_prototype.__init__(self, dataset_dir, model_output_path, lr, epochs, batch_size, l2_alpha, "3d_SA", random_state)
+        
+        self.model = Conv_3d_SA(scaler_path)
+        
+        X_train, X_test, y_train, y_test = train_test_split(self.input_list, self.output_list, test_size=0.2, random_state=42)
+        self.traindataset = RFFullDataset3d(X_train, y_train, self.model.scaler)
+        self.testdataset = RFFullDataset3d(X_test, y_test, self.model.scaler)
+        
+        return     
 
 class Trainer_3d_VGG_SA(Trainer_prototype):
     

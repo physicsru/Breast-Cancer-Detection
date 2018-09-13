@@ -7,6 +7,7 @@ from conv2d_model import Clf_conv2d
 from conv3d_model import Clf_conv3d
 from conv3d_VGG_model import Clf_conv3d_VGG
 from conv3d_VGG_SA_model import Clf_conv3d_VGG_SA
+from conv3d_SA_model import Clf_conv3d_SA
 
 import torch
 from torch import nn
@@ -26,13 +27,29 @@ class Conv_prototype():
         return pred
         
     def save_model(self, output_path, type, name):
-        torch.save(self.model.state_dict(), output_path + type + name)
+        torch.save(self.model.state_dict(), output_path + type + " " + name)
         return
     
     def reload_params(self, model_params):
         self.model.load_state_dict(torch.load(model_params))
         return
-
+    
+class Conv_3d_SA(Conv_prototype):
+    
+    def __init__(self, scaler_path, model_params=None):
+        
+        Conv_prototype.__init__(self, scaler_path)
+        
+        self.model = Clf_conv3d_SA().cuda()
+        
+        if model_params:
+            self.model.load_state_dict(torch.load(model_params))
+        
+        return
+    
+    def __str__(self):
+        return "3d_SA"
+    
 class Conv_3d_VGG_SA(Conv_prototype):
     
     def __init__(self, scaler_path, model_params=None):
