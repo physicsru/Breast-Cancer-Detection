@@ -10,7 +10,7 @@ from torch import nn
 from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
 
-from model import Conv_2d, Conv_3d, Conv_3d_VGG, Conv_3d_VGG_SA, Conv_3d_SA, Conv_3d_transfer
+from model import Conv_2d, Conv_3d, Conv_3d_VGG, Conv_3d_SA, Conv_3d_VGG_SA, Conv_3d_transfer, Conv_3d_VGG_transfer
 from pytorch_dataset import RFFullDataset, RFFullDataset3d
 
 import matplotlib.pyplot as plt
@@ -20,7 +20,7 @@ class Trainer_prototype():
     def __init__(self, dataset_dir, model_output_path, lr, epochs, batch_size, l2_alpha, type, random_state):
         
         dataset_name = dataset_dir.split('/')[-2]
-        self.output_path = os.path.join(model_output_path, dataset_name + "_" + type + '_lr_' + str(lr) + '_epoch_' + str(epochs) + '_batchsize_' + str(batch_size) + '/')
+        self.output_path = os.path.join(model_output_path, dataset_name + "_" + type + '_lr_' + str(lr) + '_epoch_' + str(epochs) + '_batchsize_' + str(batch_size) + "_l2_alpha_" + str(l2_alpha) + '/')
         
         if not os.path.exists(self.output_path):
             os.makedirs(self.output_path)
@@ -48,6 +48,7 @@ class Trainer_prototype():
             criterion = nn.MSELoss().cuda()
         else:
             criterion = nn.CrossEntropyLoss().cuda()
+            
         print('start training')
         
         for epoch in range(self.epochs):
@@ -141,6 +142,8 @@ class Trainer_prototype():
         plt.plot(self.valid_loss)
         plt.show()
         return 
+    
+    
 class Trainer_3d_transfer(Trainer_prototype):
     
     def __init__(self, dataset_dir, scaler_path, model_output_path, lr=1e-3, epochs=100, batch_size=32, l2_alpha=1e-3, type="3d_transfer", random_state=42, params=None):
@@ -156,11 +159,28 @@ class Trainer_3d_transfer(Trainer_prototype):
         self.traindataset = RFFullDataset3d(X_train, y_train, self.model.scaler)
         self.testdataset = RFFullDataset3d(X_test, y_test, self.model.scaler)
         
-        return     
+        return
+    
+class Trainer_3d_VGG_transfer(Trainer_prototype):
+    
+    def __init__(self, dataset_dir, scaler_path, model_output_path, lr=1e-3, epochs=100, batch_size=8, l2_alpha=1e-3, type="3d_VGG_transfer", random_state=42, params=None):
+        
+        Trainer_prototype.__init__(self, dataset_dir, model_output_path, lr, epochs, batch_size, l2_alpha, type, random_state)
+        
+        if params:
+            self.model = Conv_3d_VGG_transfer(scaler_path, params)
+        else:
+            self.model = Conv_3d_VGG_transfer(scaler_path)
+        
+        X_train, X_test, y_train, y_test = train_test_split(self.input_list, self.output_list, test_size=0.2, random_state=42)
+        self.traindataset = RFFullDataset3d(X_train, y_train, self.model.scaler)
+        self.testdataset = RFFullDataset3d(X_test, y_test, self.model.scaler)
+        
+        return 
     
 class Trainer_3d_SA(Trainer_prototype):
     
-    def __init__(self, dataset_dir, scaler_path, model_output_path, lr=1e-3, epochs=100, batch_size=32, l2_alpha=1e-3, type="3d_SA", random_state=42):
+    def __init__(self, dataset_dir, scaler_path, model_output_path, lr=1e-3, epochs=100, batch_size=16, l2_alpha=1e-3, type="3d_SA", random_state=42):
         
         Trainer_prototype.__init__(self, dataset_dir, model_output_path, lr, epochs, batch_size, l2_alpha, type, random_state)
         
