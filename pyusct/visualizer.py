@@ -42,7 +42,13 @@ class Visualizer(object):
                     
                 data = Variable(torch.from_numpy(data)).cuda().float()
                 pred = self.model.pred(data).detach().cpu().numpy()
-                res.append(pred[:, 0])
+                
+                if pred.shape[1]==1:
+                    # for SA pretrain
+                    res.append(pred[:, 0])
+                else:
+                    # for clas
+                    res.append(pred[:, 1])
                 print("predict point {}".format(i))
                 batch = []
             
