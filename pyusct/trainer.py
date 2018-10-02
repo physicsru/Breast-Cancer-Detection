@@ -10,7 +10,7 @@ from torch import nn
 from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
 
-from model import Conv_2d, Conv_3d, Conv_3d_VGG, Conv_3d_SA, Conv_3d_VGG_SA, Conv_3d_transfer, Conv_3d_VGG_transfer
+from model import Conv_2d, Conv_3d, Conv_3d_VGG, Conv_3d_SA, Conv_3d_VGG_SA, Conv_3d_transfer, Conv_3d_VGG_transfer, Conv_3d_VGG_parallel
 from pytorch_dataset import RFFullDataset, RFFullDataset3d
 
 import matplotlib.pyplot as plt
@@ -36,7 +36,7 @@ class Trainer_prototype():
         if not os.path.exists(self.output_path):
             os.makedirs(self.output_path)
         # save params
-        with open(os.path.join(output_path, 'params.json'), 'w') as outfile:
+        with open(os.path.join(self.output_path, 'params.json'), 'w') as outfile:
             json.dump(params, outfile)
         # initialization
         self.lr, self.epochs, self.batch_size, self.l2_alpha, self.type = lr, epochs, batch_size, l2_alpha, type
@@ -92,8 +92,8 @@ class Trainer_prototype():
                 clf_loss.backward()
                 optimizer.step()
 
-                #if i+1 % 10 == 0:
-                print('Epoch:', epoch, 'Iter', i, 'Loss:', clf_loss.item(), 'Time:', time.time()-start_time)
+                if (i+1) % 10 == 0:
+                    print('Epoch:', epoch, 'Iter', i, 'Loss:', clf_loss.item(), 'Time:', time.time()-start_time)
                 start_time = time.time()
                 
             # valid
@@ -113,8 +113,7 @@ class Trainer_prototype():
             self.train_loss.append(np.mean(train_loss))
             self.valid_loss.append(np.mean(valid_loss))
             
-            if i % 10 == 0:
-                print("Epoch: {}, train_loss: {}, valid_loss: {}".format(epoch, self.train_loss[-1], self.valid_loss[-1]))
+            print("Epoch: {}, train_loss: {}, valid_loss: {}".format(epoch, self.train_loss[-1], self.valid_loss[-1]))
                 
             if (epoch+1) % 2 == 0:
                 name = 'raw_data_epoch_'+str(epoch)+'.pth'
@@ -219,7 +218,7 @@ class Trainer_3d_VGG_SA(Trainer_prototype):
     
 class Trainer_3d_VGG(Trainer_prototype):
     
-    def __init__(self, dataset_dir, scaler_path, model_output_path, lr=1e-3, epochs=100, batch_size=8, l2_alpha=1e-3, type="3d_VGG", random_state=42):
+    def __init__(self, dataset_dir, scaler_path, model_output_path, lr=1e-3, epochs=100, batch_size=4, l2_alpha=1e-3, type="3d_VGG", random_state=42):
         
         self.model = Conv_3d_VGG(scaler_path)
         
@@ -233,6 +232,16 @@ class Trainer_3d(Trainer_prototype):
     def __init__(self, dataset_dir, scaler_path, model_output_path, lr=1e-3, epochs=100, batch_size=8, l2_alpha=1e-3, type="3d", random_state=42):
         
         self.model = Conv_3d(scaler_path)
+        
+        Trainer_prototype.__init__(self, dataset_dir, model_output_path, lr, epochs, batch_size, l2_alpha, type, random_state)
+        
+        return 
+    
+class Trainer_3d_VGG_parallel(Trainer_prototype):
+    
+    def __init__(self, dataset_dir, scaler_path, model_output_path, lr=1e-3, epochs=100, batch_size=16, l2_alpha=1e-3, type="3d_VGG", random_state=42):
+        
+        self.model = Conv_3d_VGG_parallel(scaler_path)
         
         Trainer_prototype.__init__(self, dataset_dir, model_output_path, lr, epochs, batch_size, l2_alpha, type, random_state)
         

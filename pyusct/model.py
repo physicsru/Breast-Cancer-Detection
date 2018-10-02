@@ -153,6 +153,23 @@ class Conv_3d_VGG(Conv_prototype):
     def __str__(self):
         return "3d_VGG"
     
+class Conv_3d_VGG_parallel(Conv_prototype):
+    
+    def __init__(self, scaler_path, model_params=None):
+        
+        Conv_prototype.__init__(self, scaler_path)
+        
+        self.model = Clf_conv3d_VGG().cuda()
+        
+        if model_params:
+            self.model.load_state_dict(torch.load(model_params))
+        
+        self.model = nn.DataParallel(self.model)
+        return
+    
+    def __str__(self):
+        return "3d_VGG"
+    
     
 class Conv_3d(Conv_prototype):
     
