@@ -22,7 +22,7 @@ class RandomSampleGenerator(object):
         if not os.path.exists(output_path): 
             os.makedirs(os.path.join(output_path, "input"))   # 入力データ
             os.makedirs(os.path.join(output_path, "output"))  # 出力データ      
-            os.makedirs(os.path.join(output_path, "sa"))      # 参照用SA
+            os.makedirs(os.path.join(output_path, "SA"))      # 参照用SA
 
         print("{} trials".format(len(sim_result_dirs))) 
         cnt = 0

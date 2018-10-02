@@ -35,8 +35,19 @@ class Clf_conv3d_SA(nn.Module):
         )
         
         self.pool2 = nn.MaxPool3d(kernel_size=(3, 3, 3), return_indices=True)
+        
+        self.encoder_conv5 = nn.Sequential(
+            nn.Conv3d(32, 64, kernel_size=(3, 3, 3), padding=(1, 1, 1)),
+            nn.BatchNorm3d(64),
+            nn.ReLU(True), 
+        )
+        self.encoder_conv6 = nn.Sequential(
+            nn.Conv3d(64, 64, kernel_size=(3, 3, 3), padding=(1, 1, 1)),
+            nn.BatchNorm3d(64),
+            nn.ReLU(True), 
+        )
         self.encoder_linear = nn.Sequential(
-            nn.Linear(19712, 800),
+            nn.Linear(39424, 800),
             nn.ReLU(True),
         )
         
@@ -88,6 +99,9 @@ class Clf_conv3d_SA(nn.Module):
         shape = x.shape
         x, indices = self.pool2(x)
         shape_pooled = x.shape
+        x = self.encoder_conv5(x)
+        x = self.encoder_conv6(x)
+        shape = x.shape
         x = x.view(shape[0], -1)
         # print(shape, shape_pooled, x.shape)
         x = self.encoder_linear(x)
