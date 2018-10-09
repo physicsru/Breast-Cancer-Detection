@@ -71,8 +71,8 @@ class Visualizer(object):
         image = ax.imshow(self.res, cmap='gray')
         ax.axis("image")
         plt.title("predicted")
-        
         plt.show()
+        fig.savefig("prob_map.png")
         return 
     
     def visualize_01(self):
@@ -92,8 +92,8 @@ class Visualizer(object):
         image = ax.imshow(res, cmap='gray')
         ax.axis("image")
         plt.title("predicted")
-        
         plt.show()
+        fig.savefig("01_map.png")
         return 
         
     def test(self):
