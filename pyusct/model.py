@@ -133,6 +133,7 @@ class Conv_3d_VGG_SA(Conv_prototype):
             self.model.load_state_dict(torch.load(model_params))
         
         return
+
     
     def __str__(self):
         return "3d_VGG_SA"
@@ -162,10 +163,12 @@ class Conv_3d_VGG_parallel(Conv_prototype):
         self.model = Clf_conv3d_VGG().cuda()
         
         if model_params:
+            self.model = nn.DataParallel(self.model)
             self.model.load_state_dict(torch.load(model_params))
-        
-        self.model = nn.DataParallel(self.model)
+        else:
+            self.model = nn.DataParallel(self.model)
         return
+        
     
     def __str__(self):
         return "3d_VGG"
@@ -183,6 +186,7 @@ class Conv_3d(Conv_prototype):
             self.model.load_state_dict(torch.load(model_params))
         
         return
+
     
     def __str__(self):
         return "3d"
