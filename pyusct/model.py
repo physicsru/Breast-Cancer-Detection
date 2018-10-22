@@ -9,6 +9,7 @@ from conv3d_VGG_model import Clf_conv3d_VGG
 from conv3d_VGG_SA_model import Clf_conv3d_VGG_SA
 from conv3d_SA_model import Clf_conv3d_SA
 from conv3d_ce_model import Clf_conv3d_ce
+from conv3d_densenet_model import Clf_DenseNet
 
 import torch
 from torch import nn
@@ -137,6 +138,7 @@ class Conv_3d_VGG_SA(Conv_prototype):
     
     def __str__(self):
         return "3d_VGG_SA"
+
     
 class Conv_3d_VGG(Conv_prototype):
     
@@ -153,6 +155,25 @@ class Conv_3d_VGG(Conv_prototype):
     
     def __str__(self):
         return "3d_VGG"
+    
+
+class Conv_3d_densenet(Conv_prototype):
+    
+    def __init(self,scalar_path,model_params=None):
+        
+        Conv_prototype.__init__(self,scalar_path)
+        
+        self.model = DenseNet().cuda
+        
+        if model_params:
+            self.model = nn.DataParallel(self.model)
+            self.model.load_state_dict(torch.load(model_params))
+        else:
+            self.model = nn.DataParallel(self.model)
+        return
+    
+    def __str__(self):
+        return "3d_densenet"
     
 class Conv_3d_VGG_parallel(Conv_prototype):
     
@@ -182,9 +203,14 @@ class Conv_3d(Conv_prototype):
         
         self.model = Clf_conv3d().cuda()
         
-        if model_params:
+        '''if model_params:
             self.model.load_state_dict(torch.load(model_params))
-        
+        '''
+        if model_params:
+            self.model = nn.DataParallel(self.model)
+            self.model.load_state_dict(torch.load(model_params))
+        else:
+            self.model = nn.DataParallel(self.model)
         return
 
     

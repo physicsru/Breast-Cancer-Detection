@@ -10,7 +10,7 @@ from torch import nn
 from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
 
-from model import Conv_2d, Conv_3d, Conv_3d_VGG, Conv_3d_SA, Conv_3d_VGG_SA, Conv_3d_transfer, Conv_3d_VGG_transfer, Conv_3d_VGG_parallel
+from model import Conv_2d, Conv_3d, Conv_3d_VGG, Conv_3d_SA, Conv_3d_VGG_SA, Conv_3d_transfer, Conv_3d_VGG_transfer, Conv_3d_VGG_parallel, Conv_3d_densenet
 from pytorch_dataset import RFFullDataset, RFFullDataset3d
 
 import matplotlib.pyplot as plt
@@ -47,7 +47,7 @@ class Trainer_prototype():
             self.output_list = sorted(glob.glob(os.path.join(dataset_dir, "output/*.npy")))
             
         X_train, X_test, y_train, y_test = train_test_split(self.input_list, self.output_list, test_size=0.2, random_state=42)
-        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=0.125, random_state=42)
+        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=0.15, random_state=42)
         self.train_dataset = RFFullDataset3d(X_train, y_train, self.model.scaler)
         self.valid_dataset = RFFullDataset3d(X_valid, y_valid, self.model.scaler)
         self.test_dataset = RFFullDataset3d(X_test, y_test, self.model.scaler)
@@ -246,7 +246,16 @@ class Trainer_3d_VGG_parallel(Trainer_prototype):
         Trainer_prototype.__init__(self, dataset_dir, model_output_path, lr, epochs, batch_size, l2_alpha, type, random_state)
         
         return 
-  
+    
+class Trainer_3d_densenet(Trainer_prototype):
+    
+    def __init__(self, dataset_dir, scaler_path, model_output_path, lr=1e-3, epochs=100, batch_size=16, l2_alpha=1e-3, type="3d_densenet", random_state=42):
+        
+        self.model = Conv_3d_densenet(scaler_path)
+        
+        Trainer_prototype.__init__(self, dataset_dir, model_output_path, lr, epochs, batch_size, l2_alpha, type, random_state)
+        
+        return 
     
 
     

@@ -16,6 +16,8 @@ from conv3d_VGG_model import Clf_conv3d_VGG
 
 import matplotlib.pyplot as plt
 
+from matplotlib.colors import LinearSegmentedColormap
+
 class Visualizer(object):
     
     # type: "AE" "AE_fixed" "PCA"
@@ -23,6 +25,7 @@ class Visualizer(object):
         
         self.rf = source
         self.model = model
+        self.cmap = LinearSegmentedColormap.from_list('mycmap', [(0.0, 'black'),(1.0, 'green')])
         return 
     
     def extract_subimage(self, offset=[256, 256], shape=[100, 100], batch_size=32, type="normal"):
@@ -63,12 +66,12 @@ class Visualizer(object):
         
         # truth
         ax = plt.subplot(121)
-        image = ax.imshow(self.truth, cmap='gray')
+        image = ax.imshow(self.truth, cmap=self.cmap)
         ax.axis("image")
         plt.title("ground truth")
         # predicted
         ax = plt.subplot(122)
-        image = ax.imshow(self.res, cmap='gray')
+        image = ax.imshow(self.res, cmap=self.cmap)
         ax.axis("image")
         plt.title("predicted")
         plt.show()
