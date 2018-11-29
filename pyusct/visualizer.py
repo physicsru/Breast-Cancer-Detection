@@ -25,7 +25,7 @@ class Visualizer(object):
         
         self.rf = source
         self.model = model
-        self.cmap = LinearSegmentedColormap.from_list('mycmap', [(0.0, 'black'),(1.0, 'green')])
+        self.cmap = LinearSegmentedColormap.from_list('mycmap', [(0.0, 'black'),(1.0, 'white')])
         return 
     
     def extract_subimage(self, offset=[256, 256], shape=[100, 100], batch_size=32, type="normal"):

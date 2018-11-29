@@ -10,7 +10,7 @@ from torch import nn
 from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
 
-from model import Conv_2d, Conv_3d, Conv_3d_VGG, Conv_3d_SA, Conv_3d_VGG_SA, Conv_3d_transfer, Conv_3d_VGG_transfer, Conv_3d_VGG_parallel, Conv_3d_densenet
+from model import Conv_3d
 from pytorch_dataset import RFFullDataset, RFFullDataset3d
 
 import matplotlib.pyplot as plt
@@ -46,11 +46,9 @@ class Trainer_prototype():
         else:
             self.output_list = sorted(glob.glob(os.path.join(dataset_dir, "output/*.npy")))
             
-        X_train, X_test, y_train, y_test = train_test_split(self.input_list, self.output_list, test_size=0.2, random_state=42)
-        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=0.15, random_state=42)
+        X_train, X_valid, y_train, y_valid = train_test_split(self.input_list, self.output_list, test_size=0.2, random_state=42)
         self.train_dataset = RFFullDataset3d(X_train, y_train, self.model.scaler)
         self.valid_dataset = RFFullDataset3d(X_valid, y_valid, self.model.scaler)
-        self.test_dataset = RFFullDataset3d(X_test, y_test, self.model.scaler)
         
         self.train_loss = []
         self.valid_loss = []
@@ -115,48 +113,10 @@ class Trainer_prototype():
             
             print("Epoch: {}, train_loss: {}, valid_loss: {}".format(epoch, self.train_loss[-1], self.valid_loss[-1]))
                 
-            if (epoch+1) % 2 == 0:
+            if (epoch+1) % 1 == 0:
                 name = 'raw_data_epoch_'+str(epoch)+'.pth'
                 self.model.save_model(self.output_path, self.type, name)
                 print('Model saved')
-        return
-
-
-    def test(self, model_params=None):
-        dataloader = DataLoader(self.test_dataset, self.batch_size, 
-                                shuffle=True)
-        if model_params:
-            self.model.reload_params(model_params)
-        criterion = nn.CrossEntropyLoss().cuda()
-        acc_list, f1_list, pre_list, recall_list,loss_list = [], [], [], [], []
-        start_time = time.time()
-        for i, (data, label) in enumerate(dataloader):
-            data = Variable(data).cuda().float()
-            label_tensor = Variable(label).view(-1).cuda().long()
-            prob_out = self.model.pred(data).detach().cpu().numpy()
-            prob_idx = np.argmax(prob_out, 1)
-            pred = self.model.pred(data)
-            
-            accuracy = metrics.accuracy_score(label, prob_idx)
-            precision = metrics.precision_score(label, prob_idx)
-            recall = metrics.recall_score(label, prob_idx)
-            f1_score = metrics.f1_score(label, prob_idx)
-            clf_loss = criterion(pred, label_tensor)
-            loss_list.append(clf_loss.item())
-            acc_list.append(accuracy)
-            pre_list.append(precision)
-            recall_list.append(recall)
-            f1_list.append(f1_score)
-
-            print('Iter', i, 'Time:', f'{(time.time()-start_time):.4f}')
-            print(f'{accuracy:.4f}', f'{f1_score:.4f}', f'{precision:.4f}', f'{recall:.4f}')
-            start_time = time.time()
-
-        print('accuracy:', round(np.mean(acc_list), 4))
-        print('f1_score:', round(np.mean(f1_list), 4))
-        print('precision:', round(np.mean(pre_list), 4))
-        print('recall', round(np.mean(recall_list), 4))
-        print('loss', round(np.mean(loss_list), 4))
         return
         
     def plot_learn_curve(self):
@@ -164,68 +124,8 @@ class Trainer_prototype():
         plt.plot(self.valid_loss)
         plt.show()
         return 
-    
-    
-class Trainer_3d_transfer(Trainer_prototype):
-    
-    def __init__(self, dataset_dir, scaler_path, model_output_path, lr=1e-3, epochs=100, batch_size=32, l2_alpha=1e-3, type="3d_transfer", random_state=42, params=None):
-        
-        if params:
-            self.model = Conv_3d_transfer(scaler_path, params)
-        else:
-            self.model = Conv_3d_transfer(scaler_path)
-            
-        Trainer_prototype.__init__(self, dataset_dir, model_output_path, lr, epochs, batch_size, l2_alpha, type, random_state)
-            
-        return
-    
-    
-class Trainer_3d_VGG_transfer(Trainer_prototype):
-    
-    def __init__(self, dataset_dir, scaler_path, model_output_path, lr=1e-3, epochs=100, batch_size=8, l2_alpha=1e-3, type="3d_VGG_transfer", random_state=42, params=None):
-        
-        if params:
-            self.model = Conv_3d_VGG_transfer(scaler_path, params)
-        else:
-            self.model = Conv_3d_VGG_transfer(scaler_path)
-        
-        Trainer_prototype.__init__(self, dataset_dir, model_output_path, lr, epochs, batch_size, l2_alpha, type, random_state)
-        
-        return 
-    
-    
-class Trainer_3d_SA(Trainer_prototype):
-    
-    def __init__(self, dataset_dir, scaler_path, model_output_path, lr=1e-3, epochs=100, batch_size=16, l2_alpha=1e-3, type="3d_SA", random_state=42):
-        
-        self.model = Conv_3d_SA(scaler_path)
-        
-        Trainer_prototype.__init__(self, dataset_dir, model_output_path, lr, epochs, batch_size, l2_alpha, type, random_state)
-        
-        return     
 
-    
-class Trainer_3d_VGG_SA(Trainer_prototype):
-    
-    def __init__(self, dataset_dir, scaler_path, model_output_path, lr=1e-3, epochs=100, batch_size=8, l2_alpha=1e-3, type="3d_VGG_SA", random_state=42):
-        
-        self.model = Conv_3d_VGG_SA(scaler_path)
-        
-        Trainer_prototype.__init__(self, dataset_dir, model_output_path, lr, epochs, batch_size, l2_alpha, type, random_state)
-        
-        return 
 
-    
-class Trainer_3d_VGG(Trainer_prototype):
-    
-    def __init__(self, dataset_dir, scaler_path, model_output_path, lr=1e-3, epochs=100, batch_size=4, l2_alpha=1e-3, type="3d_VGG", random_state=42):
-        
-        self.model = Conv_3d_VGG(scaler_path)
-        
-        Trainer_prototype.__init__(self, dataset_dir, model_output_path, lr, epochs, batch_size, l2_alpha, type, random_state)
-        
-        return 
-    
     
 class Trainer_3d(Trainer_prototype):
     
@@ -236,26 +136,6 @@ class Trainer_3d(Trainer_prototype):
         Trainer_prototype.__init__(self, dataset_dir, model_output_path, lr, epochs, batch_size, l2_alpha, type, random_state)
         
         return 
-    
-class Trainer_3d_VGG_parallel(Trainer_prototype):
-    
-    def __init__(self, dataset_dir, scaler_path, model_output_path, lr=1e-3, epochs=100, batch_size=16, l2_alpha=1e-3, type="3d_VGG", random_state=42):
-        
-        self.model = Conv_3d_VGG_parallel(scaler_path)
-        
-        Trainer_prototype.__init__(self, dataset_dir, model_output_path, lr, epochs, batch_size, l2_alpha, type, random_state)
-        
-        return 
-    
-class Trainer_3d_densenet(Trainer_prototype):
-    
-    def __init__(self, dataset_dir, scaler_path, model_output_path, lr=1e-3, epochs=100, batch_size=16, l2_alpha=1e-3, type="3d_densenet", random_state=42):
-        
-        self.model = Conv_3d_densenet(scaler_path)
-        
-        Trainer_prototype.__init__(self, dataset_dir, model_output_path, lr, epochs, batch_size, l2_alpha, type, random_state)
-        
-        return 
-    
+
 
     
