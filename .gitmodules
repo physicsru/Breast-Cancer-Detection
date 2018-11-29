@@ -1,3 +1,6 @@
 [submodule "deep_server_docker"]
 	path = deep_server_docker
 	url = https://WANG_RU@bitbucket.org/lily_intern/deep_server_docker.git
+[submodule "USCTSim"]
+	path = USCTSim
+	url = https://github.com/univoid/USCTSim.git
